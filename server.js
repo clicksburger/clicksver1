@@ -223,8 +223,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── HOME → redirige al admin ──
-  if (urlPath === '/' || urlPath === '/index.html') {
+  // ── HOME → PEDIDOS (público) ──
+  if (urlPath === '/') {
+    serveFile(path.join(REAL_DIR, 'pedidos.html'), res);
+    return;
+  }
+
+  // ── /index.html (layout) solo vía /admin ──
+  if (urlPath === '/index.html') {
     res.writeHead(302, { 'Location': '/admin' });
     res.end();
     return;

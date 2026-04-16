@@ -6,16 +6,18 @@
     { "source": "/admin/cocina",  "destination": "/cocina.html" },
     { "source": "/admin/login",   "destination": "/admin-login.html" },
     { "source": "/ticket",        "destination": "/ticket-cocina.html" },
-    { "source": "/",              "destination": "/pedidos.html" }
+
+    { "source": "/pedidos",       "destination": "/pedidos.html" },
+    { "source": "/menu",          "destination": "/pedidos.html" }
   ],
   "redirects": [
-    { "source": "/pedidos",             "destination": "/",              "permanent": false },
-    { "source": "/menu",                "destination": "/",              "permanent": false },
-    { "source": "/pedidos.html",        "destination": "/",              "permanent": false },
-    { "source": "/caja.html",           "destination": "/admin/caja",    "permanent": false },
-    { "source": "/cocina.html",         "destination": "/admin/cocina",  "permanent": false },
-    { "source": "/index.html",          "destination": "/admin",         "permanent": false },
-    { "source": "/admin-login.html",    "destination": "/admin/login",   "permanent": false },
-    { "source": "/ticket-cocina.html",  "destination": "/ticket",        "permanent": false }
+    { "source": "/",                   "destination": "/pedidos",       "permanent": false },
+    { "source": "/pedidos.html",       "destination": "/pedidos",       "permanent": false },
+
+    { "source": "/caja.html",          "destination": "/admin/caja",    "permanent": false },
+    { "source": "/cocina.html",        "destination": "/admin/cocina",  "permanent": false },
+    { "source": "/index.html",         "destination": "/admin",         "permanent": false },
+    { "source": "/admin-login.html",   "destination": "/admin/login",   "permanent": false },
+    { "source": "/ticket-cocina.html", "destination": "/ticket",        "permanent": false }
   ]
 }
