@@ -1,2 +1,4 @@
 node_modules/
 *.exe
+cb_cola.json
+REBUILD.bat
