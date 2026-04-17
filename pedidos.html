@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Clicks Burger — Pedidos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
@@ -1141,7 +1142,8 @@
     ══════════════════════════════════════════ */
     @media (max-width: 767px) {
 
-      body { height: 100dvh; overflow: hidden; }
+      html { overflow-x: hidden; }
+      body { height: 100dvh; overflow: hidden; overflow-x: hidden; }
 
       header { height: 48px; padding: 0 14px; }
       .logo-img { height: 34px; }
@@ -1161,10 +1163,11 @@
       .menu.panel-hidden   { display: flex !important; }
       .ticket.panel-hidden { display: flex !important; }
 
-      /* ─── TICKET — bloque inferior fijo ─── */
+      /* ─── TICKET — bloque inferior, más protagonismo en mobile ─── */
       .ticket {
         width: 100%; flex-shrink: 0;
-        max-height: 52vh;
+        max-height: 56vh;
+        max-height: 56dvh; /* iPhone Safari: usa viewport dinámico */
         border-top: 2px solid var(--ticket-border); border-left: none;
         display: flex; flex-direction: column; overflow: hidden;
       }
@@ -1172,10 +1175,12 @@
       /* ticket-body: columna con scroll interno */
       .ticket-body { flex-direction: column; flex: 1; min-height: 0; overflow: hidden; display: flex; }
 
-      /* lista de ítems: crece hasta 20 vh y luego scrollea */
+      /* lista de ítems: crece hasta 16 vh y luego scrollea */
       .ticket-items {
         flex: 0 1 auto; min-height: 0; overflow-y: auto;
-        max-height: 20vh;
+        -webkit-overflow-scrolling: touch;
+        max-height: 16vh;
+        max-height: 16dvh;
         padding: 8px 12px; border-right: none;
       }
       .ticket-empty { margin-top: 20px; font-size: 0.82rem; }
@@ -1187,10 +1192,11 @@
       .item-info .name { font-size: 0.86rem; }
       .line-total { font-size: 1rem; }
 
-      /* footer: ocupa el espacio restante del ticket y scrollea si hace falta */
+      /* footer: scrollable + safe area para home bar de iPhone */
       .ticket-footer {
         flex: 1; min-height: 0; overflow-y: auto;
-        padding: 12px 16px 16px;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px 16px max(16px, env(safe-area-inset-bottom));
         border-top: 1px solid var(--ticket-border); background: #141414;
       }
 
@@ -1198,7 +1204,10 @@
       .ticket-title  { font-size: 0.82rem; letter-spacing: 2px; }
       .btn-limpiar   { font-size: 0.68rem; padding: 5px 12px; }
 
-      .cat-label { font-size: 0.68rem; letter-spacing: 2px; margin: 4px 0 8px; padding-left: 8px; }
+      .cat-label { font-size: 0.68rem; letter-spacing: 2px; margin: 2px 0 5px; padding-left: 8px; }
+
+      /* ── menú: menos gap entre secciones ── */
+      .carousel-container { gap: 8px; margin-bottom: 4px; }
 
       .total-row        { font-size: 0.86rem; margin-bottom: 3px; }
       .total-row.grand  { font-size: 1.15rem; padding-top: 8px; margin-top: 6px; margin-bottom: 12px; }
@@ -1215,58 +1224,111 @@
 
       .btn-enviar { padding: 14px; font-size: 0.96rem; letter-spacing: 2px; border-radius: 10px; }
 
-      /* ─── CARRUSELES ─── */
-      .carousel-section  { padding: 4px 0 6px; }
-      .carousel-wrapper  { height: 256px; }
-      .carousel-img-wrap { height: 162px; }
-      .carousel-slide    { width: 238px; margin-left: -119px; }
-      .carousel-info     { padding: 8px 10px 10px; }
-      .carousel-name     { font-size: 0.9rem; }
-      .carousel-desc     { font-size: 0.63rem; -webkit-line-clamp: 1; }
+      /* ─── CARRUSELES — más compactos en mobile ─── */
+      .carousel-section  { padding: 2px 0 4px; }
+      .carousel-wrapper  { height: 200px; }          /* antes: 256px */
+      .carousel-img-wrap { height: 118px; }          /* antes: 162px */
+      .carousel-slide    { width: 210px; margin-left: -105px; } /* antes: 238px */
+      .carousel-info     { padding: 6px 10px 8px; }
+      .carousel-name     { font-size: 0.84rem; }
+      .carousel-desc     { font-size: 0.6rem; -webkit-line-clamp: 1; }
 
-      .size-panel     { width: 90px; padding-left: 7px; }
-      .cv-header      { padding: 8px 7px 7px; gap: 4px; }
-      .cv-active-name { font-size: 0.61rem; }
-      .cv-elegir      { font-size: 0.49rem; padding: 2px 5px; letter-spacing: 1px; }
-      .cv-grid        { padding: 7px 5px; gap: 5px; }
-      .cv-btn         { padding: 9px 4px; gap: 3px; border-radius: 9px; }
-      .cv-btn-label   { font-size: 0.6rem; }
-      .cv-btn-price   { font-size: 0.8rem; }
+      .size-panel     { width: 84px; padding-left: 6px; }
+      .cv-header      { padding: 7px 6px 6px; gap: 3px; }
+      .cv-active-name { font-size: 0.58rem; }
+      .cv-elegir      { font-size: 0.46rem; padding: 2px 4px; letter-spacing: 1px; }
+      .cv-grid        { padding: 6px 4px; gap: 4px; }
+      .cv-btn         { padding: 8px 3px; gap: 2px; border-radius: 8px; }
+      .cv-btn-label   { font-size: 0.57rem; }
+      .cv-btn-price   { font-size: 0.76rem; }
 
-      .bcarousel-section { padding: 4px 0; }
-      .bcarousel-wrapper { height: 234px; }
-      .bslide-img-wrap   { height: 138px; }
-      .bslide            { width: 204px; margin-left: -102px; }
-      .bslide-footer     { padding: 9px 10px 11px; }
-      .bslide-name       { font-size: 0.9rem; }
-      .bslide-price      { font-size: 0.95rem; margin: 0 0 8px; }
-      .bslide-add        { padding: 9px 0; font-size: 0.75rem; }
+      .bcarousel-section { padding: 2px 0 3px; }
+      .bcarousel-wrapper { height: 178px; }          /* antes: 234px */
+      .bslide-img-wrap   { height: 104px; }          /* antes: 138px */
+      .bslide            { width: 178px; margin-left: -89px; } /* antes: 204px */
+      .bslide-footer     { padding: 7px 10px 9px; }
+      .bslide-name       { font-size: 0.84rem; }
+      .bslide-price      { font-size: 0.88rem; margin: 0 0 6px; }
+      .bslide-add        { padding: 8px 0; font-size: 0.72rem; }
 
-      .bside-panel { width: 90px; padding-left: 7px; }
-      .esp-header { padding: 7px 6px; }
-      .esp-title  { font-size: 0.49rem; letter-spacing: 1px; padding: 2px 5px; }
-      .esp-grid   { padding: 6px 4px; gap: 5px; }
-      .esp-btn    { padding: 10px 3px 8px; border-radius: 10px; gap: 3px; }
-      .esp-icon   { font-size: 1.65rem; }
-      .esp-name   { font-size: 0.5rem; }
-      .esp-price  { font-size: 0.74rem; }
+      .bside-panel { width: 84px; padding-left: 6px; }
+      .esp-header { padding: 6px 5px; }
+      .esp-title  { font-size: 0.46rem; letter-spacing: 1px; padding: 2px 4px; }
+      .esp-grid   { padding: 5px 3px; gap: 4px; }
+      .esp-btn    { padding: 9px 3px 7px; border-radius: 9px; gap: 3px; }
+      .esp-icon   { font-size: 1.5rem; }
+      .esp-name   { font-size: 0.47rem; }
+      .esp-price  { font-size: 0.7rem; }
 
-      .carousel-nav       { width: 30px; height: 30px; font-size: 1.1rem; }
+      .carousel-nav       { width: 28px; height: 28px; font-size: 1rem; }
       .carousel-nav.prev  { left: 3px; }
       .carousel-nav.next  { right: 3px; }
 
-      .carousel-dots, .bcarousel-dots { margin: 7px 0 3px; gap: 5px; }
+      .carousel-dots, .bcarousel-dots { margin: 5px 0 2px; gap: 5px; }
       .c-dot        { width: 5px; height: 5px; }
-      .c-dot.active { width: 16px; }
+      .c-dot.active { width: 14px; }
     }
 
-    /* Pantallas muy pequeñas (≤ 374px) */
-    @media (max-width: 374px) {
-      .carousel-wrapper  { height: 220px; }
-      .bcarousel-wrapper { height: 200px; }
-      .carousel-img-wrap { height: 136px; }
-      .bslide-img-wrap   { height: 116px; }
-      .size-panel, .bside-panel { width: 80px; }
+    /* ── iPhone estándar y similares (≤ 430px) ── */
+    @media (max-width: 430px) {
+      .ticket {
+        max-height: 54vh;
+        max-height: 54dvh;
+      }
+      .ticket-items {
+        max-height: 14vh;
+        max-height: 14dvh;
+      }
+      /* carrusel levemente más bajo que la base 767 */
+      .carousel-wrapper  { height: 188px; }
+      .carousel-img-wrap { height: 108px; }
+      .bcarousel-wrapper { height: 168px; }
+      .bslide-img-wrap   { height: 96px; }
+    }
+
+    /* ── iPhone SE / mini / pantallas chicas (≤ 375px) ── */
+    @media (max-width: 375px) {
+      .ticket {
+        max-height: 52vh;
+        max-height: 52dvh;
+      }
+      .ticket-items {
+        max-height: 12vh;
+        max-height: 12dvh;
+      }
+
+      /* footer más compacto */
+      .ticket-footer        { padding: 10px 14px max(12px, env(safe-area-inset-bottom)); }
+      .tipo-btn             { padding: 8px 5px; font-size: 0.72rem; letter-spacing: 0; }
+      .delivery-fields      { padding: 8px 10px; gap: 6px; margin: 6px 0; }
+      .delivery-field-label { font-size: 0.62rem; margin-bottom: 2px; }
+      .delivery-input       { padding: 7px 9px; font-size: 0.8rem; }
+      .aclaracion-wrap          { margin: 6px 0; }
+      .aclaracion-wrap textarea { height: 32px; padding: 7px 9px; font-size: 0.78rem; }
+      .btn-enviar           { padding: 12px; font-size: 0.88rem; }
+      .total-row.grand      { font-size: 1.05rem; margin-bottom: 8px; }
+
+      /* carruseles aún más reducidos */
+      .carousel-wrapper  { height: 178px; }
+      .carousel-img-wrap { height: 100px; }
+      .bcarousel-wrapper { height: 160px; }
+      .bslide-img-wrap   { height: 88px; }
+      .size-panel, .bside-panel { width: 78px; }
+    }
+
+    /* ── iPhone SE 1ª gen / pantallas muy pequeñas (≤ 360px) ── */
+    @media (max-width: 360px) {
+      .ticket {
+        max-height: 50vh;
+        max-height: 50dvh;
+      }
+      .carousel-wrapper  { height: 164px; }
+      .carousel-img-wrap { height: 90px; }
+      .bcarousel-wrapper { height: 148px; }
+      .bslide-img-wrap   { height: 80px; }
+      .size-panel, .bside-panel { width: 74px; }
+      .cv-btn-label { font-size: 0.54rem; }
+      .cv-btn-price { font-size: 0.72rem; }
     }
   </style>
 </head>
