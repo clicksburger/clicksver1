@@ -1132,6 +1132,87 @@
     .menu ::-webkit-scrollbar-thumb { background: #444; }
 
     /* ══════════════════════════════════════════
+       MENÚ VERTICAL — mobile cards
+    ══════════════════════════════════════════ */
+    .burger-vcard {
+      display: flex; background: var(--card-bg); border-radius: 12px;
+      overflow: hidden; border: 1px solid rgba(245,163,0,0.12);
+      margin-bottom: 10px; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .burger-vcard:hover {
+      border-color: rgba(245,163,0,0.38); box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .burger-vcard.added { animation: flashAddCard 0.55s ease forwards; }
+    .burger-vcard-img { width: 120px; flex-shrink: 0; object-fit: cover; display: block; }
+    .burger-vcard-body {
+      flex: 1; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+    }
+    .burger-vcard-name {
+      font-family: 'Anton', sans-serif; font-size: 1rem; color: #fff;
+      text-transform: uppercase; line-height: 1.2;
+    }
+    .burger-vcard-desc {
+      font-size: 0.7rem; color: #888; line-height: 1.4;
+      overflow: hidden; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .burger-vcard-variants { display: flex; gap: 6px; }
+    .burger-vcard-btn {
+      flex: 1; background: rgba(245,163,0,0.08); border: 1px solid rgba(245,163,0,0.22);
+      border-radius: 8px; padding: 8px 4px; cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .burger-vcard-btn:hover { background: rgba(245,163,0,0.18); border-color: rgba(245,163,0,0.55); }
+    .burger-vcard-btn:active { transform: scale(0.96); }
+    .burger-vcard-btn-label {
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: #bbb;
+    }
+    .burger-vcard-btn-price { font-family: 'Anton', sans-serif; font-size: 0.84rem; color: var(--yellow); }
+
+    .drink-vcard {
+      display: flex; align-items: center; background: var(--card-bg);
+      border-radius: 12px; overflow: hidden; border: 1px solid rgba(245,163,0,0.12);
+      margin-bottom: 8px; transition: border-color 0.2s;
+    }
+    .drink-vcard:hover { border-color: rgba(245,163,0,0.32); }
+    .drink-vcard.added { animation: flashAddCard 0.5s ease forwards; }
+    .drink-vcard-img-wrap {
+      width: 90px; height: 90px; flex-shrink: 0; background: #111;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .drink-vcard-img { height: 72px; width: auto; object-fit: contain; }
+    .drink-vcard-body { flex: 1; padding: 0 12px; }
+    .drink-vcard-name { font-family: 'Anton', sans-serif; font-size: 0.96rem; color: #fff; margin-bottom: 3px; }
+    .drink-vcard-price { font-family: 'Anton', sans-serif; font-size: 1rem; color: var(--yellow); }
+    .drink-vcard-btn {
+      margin-right: 14px; flex-shrink: 0;
+      background: var(--yellow); color: #111; border: none; border-radius: 8px;
+      padding: 10px 14px; font-family: 'Anton', sans-serif; font-size: 0.75rem;
+      letter-spacing: 1.5px; cursor: pointer; transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .drink-vcard-btn:hover { background: var(--yellow2); }
+    .drink-vcard-btn:active { transform: scale(0.96); }
+
+    .extras-vgrid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .extras-vgrid-btn {
+      flex: 1; min-width: 80px; background: rgba(245,163,0,0.06);
+      border: 1px solid rgba(245,163,0,0.18); border-radius: 10px; padding: 10px 8px;
+      cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    .extras-vgrid-btn:hover { background: rgba(245,163,0,0.14); border-color: rgba(245,163,0,0.45); }
+    .extras-vgrid-btn:active { transform: scale(0.96); }
+    .extras-vgrid-icon { font-size: 1.6rem; }
+    .extras-vgrid-name {
+      font-size: 0.58rem; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: #aaa;
+    }
+    .extras-vgrid-price { font-family: 'Anton', sans-serif; font-size: 0.8rem; color: var(--yellow); }
+
+    /* ══════════════════════════════════════════
        MOBILE TAB BAR
     ══════════════════════════════════════════ */
     .mobile-tabbar { display: none; }
@@ -1753,7 +1834,71 @@ function nextBebida() {
 }
 
 // ── RENDER MENÚ ──
+let menuMode = null;
+
 function renderMenu() {
+  if (window.innerWidth <= 767) {
+    renderMenuVertical();
+    menuMode = 'vertical';
+  } else {
+    renderMenuCarousel();
+    menuMode = 'carousel';
+  }
+}
+
+function renderMenuVertical() {
+  const el = document.getElementById('menu');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="carousel-container">
+      <div class="cat-label">Hamburguesas</div>
+      ${BURGERS.map(b => `
+        <div class="burger-vcard" id="bc-${b.id}">
+          <img class="burger-vcard-img" src="${b.img}" alt="${b.nombre}" onerror="this.style.display='none'">
+          <div class="burger-vcard-body">
+            <div class="burger-vcard-name">${b.nombre}</div>
+            <div class="burger-vcard-desc">${b.desc}</div>
+            <div class="burger-vcard-variants">
+              ${b.variantes.map(v => `
+                <button class="burger-vcard-btn" onclick="agregarItem('${b.id}_${v.key}', '${b.id}')">
+                  <span class="burger-vcard-btn-label">${v.label}</span>
+                  <span class="burger-vcard-btn-price">$${v.precio.toLocaleString('es-AR')}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('')}
+
+      <div class="cat-label">Bebidas</div>
+      ${BEBIDAS.map((b, i) => `
+        <div class="drink-vcard" id="bslide-${i}">
+          <div class="drink-vcard-img-wrap">
+            <img class="drink-vcard-img" src="${b.img}" alt="${b.nombre}" onerror="this.style.display='none'">
+          </div>
+          <div class="drink-vcard-body">
+            <div class="drink-vcard-name">${b.nombre}</div>
+            <div class="drink-vcard-price">$${b.precio.toLocaleString('es-AR')}</div>
+          </div>
+          <button class="drink-vcard-btn" onclick="agregarItem('${b.id}', null)">+ AGREGAR</button>
+        </div>
+      `).join('')}
+
+      <div class="cat-label">Extras</div>
+      <div class="extras-vgrid">
+        ${EXTRAS.map(e => `
+          <button class="extras-vgrid-btn" onclick="agregarItem('${e.id}', null)">
+            <span class="extras-vgrid-icon">${e.icon}</span>
+            <span class="extras-vgrid-name">${e.nombre}</span>
+            <span class="extras-vgrid-price">$${e.precio.toLocaleString('es-AR')}</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderMenuCarousel() {
   const el = document.getElementById('menu');
 
   const extrasPanelHTML = `
@@ -1862,7 +2007,7 @@ function agregarItem(id, burgerCardId) {
   if (bIndex !== -1) {
     const bslide = document.getElementById(`bslide-${bIndex}`);
     if (bslide) {
-      const card = bslide.querySelector('.bslide-card');
+      const card = bslide.querySelector('.bslide-card') || bslide;
       card.classList.remove('added');
       void card.offsetWidth;
       card.classList.add('added');
@@ -2077,6 +2222,16 @@ channel.onmessage = ({ data }) => {
 renderMenu();
 renderTicket();
 document.getElementById('num-pedido').textContent = `PEDIDO #${String(numPedido).padStart(3,'0')}`;
+
+// Re-render menu si cambia entre mobile y desktop
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const newMode = window.innerWidth <= 767 ? 'vertical' : 'carousel';
+    if (newMode !== menuMode) renderMenu();
+  }, 150);
+});
 </script>
 </body>
 </html>
