@@ -1214,9 +1214,17 @@
     .extras-vgrid-price { font-family: 'Anton', sans-serif; font-size: 0.8rem; color: var(--yellow); }
 
     /* ══════════════════════════════════════════
-       MOBILE TAB BAR
+       MOBILE TAB BAR + CARRUSEL BURGERS + FAB
     ══════════════════════════════════════════ */
     .mobile-tabbar { display: none; }
+    .mb-carousel-wrap { display: none; }
+    .mobile-fab { display: none; }
+    .header-cat-inline { display: none; }
+
+    @keyframes fabPop {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
 
     /* ══════════════════════════════════════════
        RESPONSIVE — MOBILE (≤ 767px)
@@ -1225,9 +1233,132 @@
 
       body { height: 100dvh; overflow: hidden; }
 
-      header { height: 48px; padding: 0 14px; }
-      .logo-img { height: 34px; }
-      .pedido-badge { font-size: 0.7rem; padding: 4px 10px; letter-spacing: 1px; border-radius: 20px; }
+      header { height: 44px; padding: 0 12px; gap: 8px; }
+      .logo-img { height: 30px; }
+      .pedido-badge { font-size: 0.66rem; padding: 3px 9px; letter-spacing: 1px; border-radius: 20px; }
+      .header-cat-inline {
+        font-family: 'Anton', sans-serif;
+        font-size: 0.78rem;
+        letter-spacing: 2.4px;
+        color: var(--yellow);
+        margin-left: 4px;
+        flex: 1;
+        text-align: center;
+      }
+
+      /* ocultar el primer cat-label "Hamburguesas" porque ya está en el header */
+      .menu .cat-label.cat-burgers-first { display: none; }
+
+      /* ─── CARRUSEL HORIZONTAL DE HAMBURGUESAS (mobile) ─── */
+      .mb-carousel-wrap { display: block; margin: 0 -10px 10px; }
+      .mb-carousel {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        gap: 10px;
+        padding: 4px 16px 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .mb-carousel::-webkit-scrollbar { display: none; }
+      .mb-slide {
+        flex: 0 0 calc(100% - 56px);
+        scroll-snap-align: center;
+        background: var(--card-bg, #1a1a1a);
+        border: 1px solid var(--border, #2e2e2e);
+        border-radius: 14px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .mb-slide-img {
+        width: 100%; height: 164px; object-fit: cover;
+        background: #0f0f0f;
+      }
+      .mb-slide-body { padding: 10px 12px 12px; }
+      .mb-slide-name {
+        font-family: 'Anton', sans-serif;
+        font-size: 0.98rem;
+        letter-spacing: 1.5px;
+        color: var(--yellow);
+        margin-bottom: 3px;
+      }
+      .mb-slide-desc {
+        font-size: 0.68rem;
+        color: #aaa;
+        line-height: 1.3;
+        margin-bottom: 9px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .mb-slide-variants {
+        display: flex;
+        gap: 6px;
+      }
+      .mb-slide-btn {
+        flex: 1; padding: 9px 2px; gap: 2px;
+        background: rgba(245,163,0,0.08);
+        border: 1px solid rgba(245,163,0,0.25);
+        border-radius: 9px;
+        display: flex; flex-direction: column; align-items: center;
+        color: #fff; cursor: pointer;
+        transition: background 0.15s, transform 0.08s;
+      }
+      .mb-slide-btn:active { transform: scale(0.94); background: rgba(245,163,0,0.22); }
+      .mb-slide-btn-label { font-size: 0.56rem; letter-spacing: 1px; text-transform: uppercase; color: #bbb; }
+      .mb-slide-btn-price { font-family: 'Anton', sans-serif; font-size: 0.82rem; color: var(--yellow); }
+
+      .mb-dots {
+        display: flex; justify-content: center; gap: 5px;
+        padding: 2px 0 6px;
+      }
+      .mb-dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #444;
+        transition: all 0.25s ease;
+      }
+      .mb-dot.active { width: 20px; background: var(--yellow); border-radius: 3px; }
+
+      /* ─── FAB "CONTINUÁ CON EL PEDIDO" ─── */
+      .mobile-fab {
+        position: fixed;
+        right: 14px; bottom: 76px;
+        background: var(--yellow);
+        color: #111;
+        border: none;
+        border-radius: 50px;
+        padding: 13px 18px 13px 20px;
+        font-family: 'Anton', sans-serif;
+        font-size: 0.78rem;
+        letter-spacing: 1.5px;
+        box-shadow: 0 8px 22px rgba(245,163,0,0.55), 0 2px 6px rgba(0,0,0,0.4);
+        z-index: 300;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        gap: 9px;
+      }
+      .mobile-fab.visible {
+        display: inline-flex;
+        animation: fabPop 0.28s ease-out;
+      }
+      .mobile-fab:active { transform: scale(0.95); }
+      .mobile-fab-count {
+        background: #111; color: var(--yellow);
+        font-family: 'Lato', sans-serif; font-weight: 900;
+        font-size: 0.72rem;
+        border-radius: 50%;
+        min-width: 22px; height: 22px;
+        display: inline-flex; align-items: center; justify-content: center;
+        padding: 0 5px;
+      }
+      .mobile-fab-arrow { font-size: 1.05rem; line-height: 1; }
+
+      /* ocultar burger-vcard viejas en mobile (reemplazadas por carrusel) */
+      .menu .burger-vcard { display: none; }
 
       /* ─── TAB BAR ─── */
       .mobile-tabbar {
@@ -1414,6 +1545,7 @@
 
 <header>
   <img src="img/clickslogo.jpg" alt="Clicks Burger" class="logo-img">
+  <span class="header-cat-inline">HAMBURGUESAS</span>
   <div class="pedido-badge" id="num-pedido">PEDIDO #001</div>
 </header>
 
@@ -1477,6 +1609,12 @@
     </div>
   </div>
 </div>
+
+<button class="mobile-fab" id="mobile-fab" onclick="switchTab('ticket')">
+  <span class="mobile-fab-count" id="mobile-fab-count">0</span>
+  CONTINUÁ CON EL PEDIDO
+  <span class="mobile-fab-arrow">›</span>
+</button>
 
 <div class="toast" id="toast"></div>
 
@@ -1879,29 +2017,73 @@ function renderMenu() {
   }
 }
 
+function initMbCarouselDots() {
+  const car = document.getElementById('mb-carousel');
+  const dotsWrap = document.getElementById('mb-dots');
+  if (!car || !dotsWrap) return;
+  const dots = dotsWrap.querySelectorAll('.mb-dot');
+
+  const updateDot = () => {
+    const slides = car.querySelectorAll('.mb-slide');
+    if (!slides.length) return;
+    const center = car.scrollLeft + car.clientWidth / 2;
+    let best = 0, bestDist = Infinity;
+    slides.forEach((s, i) => {
+      const sc = s.offsetLeft + s.offsetWidth / 2;
+      const d = Math.abs(sc - center);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    dots.forEach((d, i) => d.classList.toggle('active', i === best));
+  };
+
+  car.addEventListener('scroll', () => {
+    clearTimeout(car._dotT);
+    car._dotT = setTimeout(updateDot, 40);
+  });
+
+  dots.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      const slides = car.querySelectorAll('.mb-slide');
+      if (slides[i]) {
+        car.scrollTo({
+          left: slides[i].offsetLeft - (car.clientWidth - slides[i].offsetWidth) / 2,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+}
+
 function renderMenuVertical() {
   const el = document.getElementById('menu');
   if (!el) return;
   el.innerHTML = `
     <div class="carousel-container">
-      <div class="cat-label">Hamburguesas</div>
-      ${BURGERS.map(b => `
-        <div class="burger-vcard" id="bc-${b.id}">
-          <img class="burger-vcard-img" src="${b.img}" alt="${b.nombre}" onerror="this.style.display='none'">
-          <div class="burger-vcard-body">
-            <div class="burger-vcard-name">${b.nombre}</div>
-            <div class="burger-vcard-desc">${b.desc}</div>
-            <div class="burger-vcard-variants">
-              ${b.variantes.map(v => `
-                <button class="burger-vcard-btn" onclick="agregarItem('${b.id}_${v.key}', '${b.id}')">
-                  <span class="burger-vcard-btn-label">${v.label}</span>
-                  <span class="burger-vcard-btn-price">$${v.precio.toLocaleString('es-AR')}</span>
-                </button>
-              `).join('')}
+      <div class="cat-label cat-burgers-first">Hamburguesas</div>
+      <div class="mb-carousel-wrap">
+        <div class="mb-carousel" id="mb-carousel">
+          ${BURGERS.map(b => `
+            <div class="mb-slide" id="bc-${b.id}" data-burger-id="${b.id}">
+              <img class="mb-slide-img" src="${b.img}" alt="${b.nombre}" onerror="this.style.display='none'">
+              <div class="mb-slide-body">
+                <div class="mb-slide-name">${b.nombre}</div>
+                <div class="mb-slide-desc">${b.desc}</div>
+                <div class="mb-slide-variants">
+                  ${b.variantes.map(v => `
+                    <button class="mb-slide-btn" onclick="agregarItem('${b.id}_${v.key}', '${b.id}')">
+                      <span class="mb-slide-btn-label">${v.label}</span>
+                      <span class="mb-slide-btn-price">$${v.precio.toLocaleString('es-AR')}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
             </div>
-          </div>
+          `).join('')}
         </div>
-      `).join('')}
+        <div class="mb-dots" id="mb-dots">
+          ${BURGERS.map((_, i) => `<span class="mb-dot ${i === 0 ? 'active' : ''}" data-idx="${i}"></span>`).join('')}
+        </div>
+      </div>
 
       <div class="cat-label">Bebidas</div>
       ${BEBIDAS.map((b, i) => `
@@ -1929,6 +2111,7 @@ function renderMenuVertical() {
       </div>
     </div>
   `;
+  initMbCarouselDots();
 }
 
 function renderMenuCarousel() {
@@ -2012,6 +2195,7 @@ function switchTab(tab) {
     tabMenu.classList.remove('active');
     tabTicket.classList.add('active');
   }
+  updateTabBadge();
 }
 function updateTabBadge() {
   const badge = document.getElementById('tab-badge');
@@ -2021,6 +2205,15 @@ function updateTabBadge() {
   badge.classList.toggle('visible', total > 0);
   const tabTicket = document.getElementById('tab-ticket');
   if (tabTicket) tabTicket.classList.toggle('has-items', total > 0);
+
+  // FAB "CONTINUÁ CON EL PEDIDO" — sólo cuando hay items y el tab activo es MENÚ
+  const fab = document.getElementById('mobile-fab');
+  const fabCount = document.getElementById('mobile-fab-count');
+  if (fab && fabCount) {
+    fabCount.textContent = total;
+    const show = total > 0 && activeTab === 'menu' && window.innerWidth <= 767;
+    fab.classList.toggle('visible', show);
+  }
 }
 
 // ── TICKET ──
@@ -2258,6 +2451,9 @@ renderMenu();
 renderTicket();
 document.getElementById('num-pedido').textContent = `PEDIDO #${String(numPedido).padStart(3,'0')}`;
 
+// En mobile: arrancar viendo el menú (ticket oculto por defecto)
+if (window.innerWidth <= 767) switchTab('menu');
+
 // Re-render menu si cambia entre mobile y desktop
 let resizeTimer;
 window.addEventListener('resize', () => {
@@ -2265,6 +2461,7 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(() => {
     const newMode = window.innerWidth <= 767 ? 'vertical' : 'carousel';
     if (newMode !== menuMode) renderMenu();
+    updateTabBadge();
   }, 150);
 });
 </script>
