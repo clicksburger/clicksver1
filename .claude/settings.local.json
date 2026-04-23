@@ -10,7 +10,11 @@
       "Bash(awk '{print $5}')",
       "Bash(xargs -I{} taskkill //F //PID {})",
       "Bash(ls /c/Users/popet/OneDrive/Desktop/snake/*.html /c/Users/popet/OneDrive/Desktop/snake/*.css /c/Users/popet/OneDrive/Desktop/snake/*.js)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(gh pr create --title 'feat: mejora UX mobile en /pedidos con sistema de tabs' --body ' *)",
+      "Bash(where gh *)",
+      "Read(//c/Users/popet/AppData/Local/Programs/**)",
+      "Bash(gh pr create --title 'feat\\(pedidos\\): carrusel mobile de hamburguesas y FAB '\\\\''continuá con el pedido'\\\\''' --body ' *)"
     ]
   }
 }
