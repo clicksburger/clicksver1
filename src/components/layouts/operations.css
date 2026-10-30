@@ -148,6 +148,37 @@
   padding: 0;
 }
 
+/* Aviso "Actualizando pedido…": flota abajo y no mueve el tablero. */
+.ops-busy {
+  position: fixed;
+  right: clamp(16px, 2vw, 32px);
+  bottom: clamp(16px, 2vw, 32px);
+  z-index: 40;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 10px 28px #0006;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.ops-busy.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ops-busy {
+    transition: none;
+  }
+}
+
 /* ── Tarjeta de caja ── */
 .ops-order {
   min-width: 0;

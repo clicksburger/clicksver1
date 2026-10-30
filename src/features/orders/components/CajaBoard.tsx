@@ -19,6 +19,8 @@ import { useOrders } from "../hooks/useOrders";
 import { pedidosPorEstado } from "../store/orders.store";
 import { OrderCard } from "./OrderCard";
 import { OrderEditModal } from "./OrderEditModal";
+import { getTurnoAbierto } from "@/features/caja/services/caja.client";
+import { ventasDelTurno } from "@/features/caja/turno-report";
 import type { Pedido } from "@/types/domain";
 
 type TabKey = "entrantes" | "preparacion" | "listos" | "entregados";
@@ -68,6 +70,27 @@ export function CajaBoard({ tenantId, slug }: { tenantId: string; slug: string }
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const actionLock = useRef(false);
+  // Apertura del turno de caja: "Entregados" arranca de cero con cada turno.
+  // undefined = cargando; null = caja cerrada.
+  const [turnoDesde, setTurnoDesde] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let active = true;
+    const load = () =>
+      getTurnoAbierto(tenantId)
+        .then((t) => active && setTurnoDesde(t?.abierto_en ?? null))
+        .catch(() => {
+          /* se reintenta en el próximo ciclo */
+        });
+    void load();
+    const timer = setInterval(load, 60000);
+    const onFocus = () => void load();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [tenantId]);
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem("clicks:caja-tab");
@@ -90,7 +113,7 @@ export function CajaBoard({ tenantId, slug }: { tenantId: string; slug: string }
     entrantes: pedidosPorEstado(pedidos, ["nuevo"]),
     preparacion: pedidosPorEstado(pedidos, ["en_cocina"]),
     listos: pedidosPorEstado(pedidos, ["listo"]),
-    entregados: pedidosPorEstado(pedidos, ["entregado"]),
+    entregados: turnoDesde ? ventasDelTurno(pedidos, turnoDesde, null).reverse() : [],
   };
   const visibles = grupos[tab];
 
@@ -148,16 +171,19 @@ export function CajaBoard({ tenantId, slug }: { tenantId: string; slug: string }
           {actionError}
         </p>
       )}
-      {busy && (
-        <p role="status" className="mb-3 text-sm text-muted">
-          Actualizando pedido…
-        </p>
-      )}
+      {/* Aviso flotante: siempre montado y fuera del flujo, así no empuja las tarjetas. */}
+      <p role="status" aria-live="polite" className={`ops-busy ${busy ? "is-visible" : ""}`}>
+        {busy ? "Actualizando pedido…" : ""}
+      </p>
       {visibles.length === 0 ? (
         <p className="ops-empty">
           {tab === "listos"
             ? "No hay pedidos listos para entregar."
-            : "No hay pedidos en esta sección."}
+            : tab === "entregados" && turnoDesde === null
+              ? "La caja está cerrada. Los entregados empiezan de cero con cada turno; los anteriores están en Cierre."
+              : tab === "entregados"
+                ? "Todavía no hay entregas en este turno."
+                : "No hay pedidos en esta sección."}
         </p>
       ) : (
         <fieldset disabled={busy} className="ops-grid" aria-label="Pedidos de la sección">

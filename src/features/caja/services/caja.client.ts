@@ -1,5 +1,8 @@
 import { createSupabaseBrowserClient } from "@/services/supabase/client";
+import { mapPedido } from "@/features/orders/mappers";
+import { descargarArchivo, turnoArchivo, turnoCsv, ventasDelTurno } from "../turno-report";
 import type { Database } from "@/types/db.types";
+import type { Pedido } from "@/types/domain";
 
 export type CajaTurno = Database["public"]["Tables"]["caja_turnos"]["Row"];
 
@@ -70,6 +73,43 @@ export async function cerrarCaja(
   });
   if (error) throw new Error(error.message);
   return data as CajaTurno;
+}
+
+/**
+ * Pedidos entregados durante un turno. Se trae desde un día antes de la
+ * apertura (un pedido puede entrar antes y entregarse en el turno) y se filtra
+ * por la hora de entrega, el mismo criterio que caja_ventas.
+ */
+export async function pedidosEntregadosDelTurno(
+  tenantId: string,
+  desde: string,
+  hasta: string | null,
+): Promise<Pedido[]> {
+  const supabase = createSupabaseBrowserClient();
+  const from = new Date(new Date(desde).getTime() - 86400000).toISOString();
+  const until = hasta ?? new Date().toISOString();
+  const rows: Pedido[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await supabase
+      .from("pedidos")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("estado", "entregado")
+      .gte("creado_en", from)
+      .lte("creado_en", until)
+      .order("num")
+      .range(offset, offset + 499);
+    if (error) throw new Error("No se pudieron leer los pedidos del turno.");
+    rows.push(...(data ?? []).map(mapPedido));
+    if (!data || data.length < 500) break;
+  }
+  return ventasDelTurno(rows, desde, hasta);
+}
+
+/** Descarga el Excel (CSV) de un turno: resumen, formas de pago, productos y detalle. */
+export async function descargarExcelTurno(tenantId: string, turno: CajaTurno) {
+  const entregados = await pedidosEntregadosDelTurno(tenantId, turno.abierto_en, turno.cerrado_en);
+  descargarArchivo(turnoArchivo(turno), turnoCsv(turno, entregados));
 }
 
 /** Historial de turnos cerrados (para el admin). */

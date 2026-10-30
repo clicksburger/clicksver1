@@ -12,7 +12,7 @@ import {
   ShoppingBag,
   Wallet,
 } from "lucide-react";
-import { loadDashboard } from "@/features/dashboard/dashboard.client";
+import { loadDashboard, loadShiftDashboard } from "@/features/dashboard/dashboard.client";
 import { money, orderTotal, periodStart, summarize } from "@/features/dashboard/summary";
 import { ESTADO_LABEL } from "@/constants/order-states";
 import { routes } from "@/constants/routes";
@@ -30,7 +30,8 @@ const time = (date: string) =>
   }).format(new Date(date));
 
 export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
-  const [days, setDays] = useState(1);
+  // 0 = turno de caja (se reinicia en cada apertura); 7 y 30 = días calendario.
+  const [days, setDays] = useState(0);
   const [revision, setRevision] = useState(0);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,10 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
       setLoading(true);
       setError(null);
       try {
-        const result = await loadDashboard(tenant.id, periodStart(days), new Date().toISOString());
+        const result =
+          days === 0
+            ? await loadShiftDashboard(tenant.id)
+            : await loadDashboard(tenant.id, periodStart(days), new Date().toISOString());
         if (active) {
           setData(result);
           setUpdated(new Date().toISOString());
@@ -87,7 +91,7 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
     );
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `clicks-ventas-${days}-dias.csv`;
+    anchor.download = days === 0 ? "clicks-ventas-turno.csv" : `clicks-ventas-${days}-dias.csv`;
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -140,7 +144,7 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
       <div className="cd-toolbar">
         <div role="group" aria-label="Período del reporte" className="cd-period">
           {[
-            { value: 1, label: "Hoy" },
+            { value: 0, label: "Turno" },
             { value: 7, label: "7 días" },
             { value: 30, label: "30 días" },
           ].map((period) => (
@@ -219,8 +223,14 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
                 </div>
               </section>
               <p className="cd-method">
-                Período por fecha de creación del pedido, en hora de Buenos Aires. Las ventas
-                incluyen solo pedidos entregados; no representan cobros verificados.
+                {days === 0
+                  ? data.turno
+                    ? data.turno.cerrado_en
+                      ? `Último turno: ${time(data.turno.abierto_en)} a ${time(data.turno.cerrado_en)}. Se reinicia al abrir la caja. `
+                      : `Turno abierto desde ${time(data.turno.abierto_en)}. Se reinicia al abrir la próxima caja. `
+                    : "Todavía no hay turnos de caja: se muestra el día de hoy. "
+                  : "Período por fecha de creación del pedido, en hora de Buenos Aires. "}
+                Las ventas incluyen solo pedidos entregados; no representan cobros verificados.
               </p>
 
               <section className="cd-operation" aria-label="Estado del local">

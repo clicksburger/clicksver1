@@ -157,7 +157,10 @@ html:has(.clicks-menu) {
   position: absolute;
   z-index: -2;
   inset: 0 0 0 44%;
-  background: #ffd21c;
+  /* La foto se funde con el fondo: sin esto su borde izquierdo se veía como
+     una línea vertical cortada sobre el carbón. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 34%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 34%);
 }
 .cm-hero-photo {
   object-fit: cover;
@@ -167,7 +170,7 @@ html:has(.clicks-menu) {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(90deg, #131e24 36%, #131e24ed 44%, #131e2400 68%);
+  background: linear-gradient(90deg, #131e24 40%, #131e24b3 52%, #131e2400 72%);
 }
 .cm-hero-inner {
   max-width: 1420px;
@@ -880,6 +883,8 @@ html:has(.clicks-menu) {
   }
   .cm-hero-photo-wrap {
     inset: 0 0 0 12%;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 24%);
   }
   .cm-hero-shade {
     background: linear-gradient(90deg, #131e24e8 0%, #131e24a8 45%, #131e2433 100%);

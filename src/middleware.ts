@@ -21,22 +21,27 @@ export async function middleware(req: NextRequest) {
     },
   );
 
+  // getSession() lee la sesión de la cookie (y la renueva si venció) sin ir a
+  // Supabase en cada clic. Acá solo decide si redirigir al login: la validación
+  // real del usuario y su rol la hace getStaffSession()/getSuperadminSession()
+  // con getUser() en el servidor, antes de mostrar cualquier dato.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const hasSession = Boolean(session);
 
   const { pathname } = req.nextUrl;
 
   // Rutas de staff por tenant
   const staff = pathname.match(STAFF_RE);
-  if (staff && !user) {
+  if (staff && !hasSession) {
     const url = req.nextUrl.clone();
     url.pathname = `/t/${staff[1]}/login`;
     return NextResponse.redirect(url);
   }
 
   // Superadmin (la verificación de platform_admin se hace en la página)
-  if (pathname.startsWith("/superadmin") && pathname !== "/superadmin/login" && !user) {
+  if (pathname.startsWith("/superadmin") && pathname !== "/superadmin/login" && !hasSession) {
     const url = req.nextUrl.clone();
     url.pathname = "/superadmin/login";
     return NextResponse.redirect(url);

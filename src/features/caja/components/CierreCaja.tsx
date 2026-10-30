@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DoorOpen, DoorClosed, RefreshCw, Wallet, History } from "lucide-react";
+import { DoorOpen, DoorClosed, RefreshCw, Wallet, History, Download } from "lucide-react";
 import { Button } from "@/components/ui";
 import { Input, FormField } from "@/components/forms";
 import { cn } from "@/lib/cn";
@@ -10,6 +10,7 @@ import { formatPrecio } from "@/lib/format";
 import {
   abrirCaja,
   cerrarCaja,
+  descargarExcelTurno,
   getTurnoAbierto,
   listarTurnos,
   ventasActuales,
@@ -49,6 +50,8 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resultado, setResultado] = useState<CajaTurno | null>(null);
+  const [descargando, setDescargando] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const [montoInicial, setMontoInicial] = useState("");
   const [notaApertura, setNotaApertura] = useState("");
@@ -83,6 +86,18 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
     }
   }
 
+  async function descargar(t: CajaTurno) {
+    setDescargando(t.id);
+    setAviso(null);
+    try {
+      await descargarExcelTurno(tenantId, t);
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : "No se pudo generar el Excel del turno.");
+    } finally {
+      setDescargando(null);
+    }
+  }
+
   async function onAbrir() {
     setBusy(true);
     setError(null);
@@ -110,10 +125,16 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const cerrado = await cerrarCaja(turno.id, Number(montoFinal) || 0, notaCierre.trim() || null);
+      const cerrado = await cerrarCaja(
+        turno.id,
+        Number(montoFinal) || 0,
+        notaCierre.trim() || null,
+      );
       setResultado(cerrado);
       setMontoFinal("");
       setNotaCierre("");
+      // El Excel del turno se descarga solo al cerrar: queda el registro fuera de la app.
+      await descargar(cerrado);
       await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo cerrar la caja");
@@ -126,11 +147,21 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
-      <h1 className="mb-6 text-xl font-bold">Caja — turno</h1>
+      <h1 className="mb-2 text-xl font-bold">Caja — turno</h1>
+      <p className="mb-6 text-sm text-muted">
+        Las ventas empiezan de cero con cada apertura. Al cerrar se descarga el Excel del turno; la
+        app guarda los pedidos y el historial de los últimos 30 días.
+      </p>
 
       {error && (
-        <p className="mb-4 rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
+        <p className="border-danger/40 bg-danger/10 mb-4 rounded-lg border px-4 py-2 text-sm text-danger">
           {error}
+        </p>
+      )}
+
+      {aviso && (
+        <p className="mb-4 rounded-lg border border-border bg-surface2 px-4 py-2 text-sm text-muted">
+          {aviso}
         </p>
       )}
 
@@ -169,7 +200,15 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
             <span className="font-display text-2xl text-text">{formatPrecio(esperado)}</span>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={descargando === turno.id}
+              onClick={() => void descargar(turno)}
+            >
+              <Download className="h-4 w-4" /> Excel parcial
+            </Button>
             <Button size="sm" variant="ghost" onClick={refrescarVentas}>
               <RefreshCw className="h-4 w-4" /> Actualizar ventas
             </Button>
@@ -233,7 +272,9 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
 
       {resultado && (
         <div className="mt-4 rounded-xl border border-border bg-surface p-5">
-          <p className="mb-3 font-bold">Resumen del cierre · turno {fechaHora(resultado.abierto_en)}</p>
+          <p className="mb-3 font-bold">
+            Resumen del cierre · turno {fechaHora(resultado.abierto_en)}
+          </p>
           <div className="flex flex-col gap-1.5 text-sm">
             <div className="flex justify-between">
               <span className="text-muted">Fondo inicial</span>
@@ -245,7 +286,9 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
             </div>
             <div className="flex justify-between border-t border-border pt-1.5">
               <span className="text-muted">Esperado</span>
-              <span>{formatPrecio(Number(resultado.monto_inicial) + Number(resultado.ventas ?? 0))}</span>
+              <span>
+                {formatPrecio(Number(resultado.monto_inicial) + Number(resultado.ventas ?? 0))}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted">Contado</span>
@@ -255,6 +298,16 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
               <span className="text-muted">Diferencia</span>
               <Diferencia valor={Number(resultado.diferencia ?? 0)} />
             </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={descargando === resultado.id}
+              onClick={() => void descargar(resultado)}
+            >
+              <Download className="h-4 w-4" /> Descargar Excel del turno
+            </Button>
           </div>
         </div>
       )}
@@ -275,6 +328,9 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
                   <th className="px-3 py-2 text-right">Ventas</th>
                   <th className="px-3 py-2 text-right">Contado</th>
                   <th className="px-3 py-2 text-right">Diferencia</th>
+                  <th className="px-3 py-2">
+                    <span className="sr-only">Excel</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -283,11 +339,27 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
                     <td className="px-3 py-2">{fechaHora(t.abierto_en)}</td>
                     <td className="px-3 py-2">{fechaHora(t.cerrado_en)}</td>
                     <td className="px-3 py-2 text-muted">{t.abierto_por_email ?? "—"}</td>
-                    <td className="px-3 py-2 text-right">{formatPrecio(Number(t.monto_inicial))}</td>
+                    <td className="px-3 py-2 text-right">
+                      {formatPrecio(Number(t.monto_inicial))}
+                    </td>
                     <td className="px-3 py-2 text-right">{formatPrecio(Number(t.ventas ?? 0))}</td>
-                    <td className="px-3 py-2 text-right">{formatPrecio(Number(t.monto_final ?? 0))}</td>
+                    <td className="px-3 py-2 text-right">
+                      {formatPrecio(Number(t.monto_final ?? 0))}
+                    </td>
                     <td className="px-3 py-2 text-right">
                       <Diferencia valor={Number(t.diferencia ?? 0)} />
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => void descargar(t)}
+                        disabled={descargando === t.id}
+                        aria-label={`Descargar Excel del turno ${fechaHora(t.abierto_en)}`}
+                        title="Descargar Excel"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-surface2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
