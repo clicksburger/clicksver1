@@ -16,6 +16,18 @@ import { routes } from "@/constants/routes";
 import type { MenuItem, Tenant } from "@/types/domain";
 import "./menu-brand.css";
 
+/** Mascotas de la carta impresa de Clicks, por categoría. */
+const MASCOTAS = {
+  burger: { src: "/img/mascota-burger.png", w: 420, h: 387 },
+  papas: { src: "/img/mascota-papas.png", w: 420, h: 443 },
+} as const;
+function mascotaDe(categoria: string) {
+  const c = categoria.toLowerCase();
+  if (c.includes("hamburgues")) return MASCOTAS.burger;
+  if (c.includes("extra") || c.includes("papa")) return MASCOTAS.papas;
+  return null;
+}
+
 export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[] }) {
   const groups = useMemo(() => groupByCategoria(items), [items]);
   const count = useCartStore((state) => cartCount(state.lines));
@@ -142,7 +154,6 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
       </section>
       <div className="cm-brand-strip">
         <span>Burgers con nombre propio.</span>
-        <span>El sabor de Clicks.</span>
         <span>Retiro y delivery.</span>
       </div>
       <nav
@@ -208,6 +219,20 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
                       <p>La carta de Clicks</p>
                       <h2>{group.categoria}</h2>
                     </div>
+                    {(() => {
+                      const mascota = mascotaDe(group.categoria);
+                      return mascota ? (
+                        <Image
+                          src={mascota.src}
+                          alt=""
+                          aria-hidden="true"
+                          width={mascota.w}
+                          height={mascota.h}
+                          sizes="(max-width: 700px) 64px, 104px"
+                          className="cm-section-mascot"
+                        />
+                      ) : null;
+                    })()}
                     <span>
                       {group.categoria.toLowerCase().includes("hamburgues")
                         ? "Todas incluyen papas"
@@ -238,13 +263,20 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
       </div>
       <footer className="cm-footer">
         <div className="cm-footer-inner">
-          <div>
-            <ClicksLogo />
-            <p>
-              El último click
-              <br />
-              antes del primer bocado.
-            </p>
+          <div className="cm-footer-brand">
+            <Image
+              src={MASCOTAS.burger.src}
+              alt=""
+              aria-hidden="true"
+              width={MASCOTAS.burger.w}
+              height={MASCOTAS.burger.h}
+              sizes="120px"
+              className="cm-footer-mascot"
+            />
+            <div>
+              <ClicksLogo />
+              <p>El gusto de volver.</p>
+            </div>
           </div>
           <div className="cm-footer-links">
             <a

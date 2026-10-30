@@ -1,6 +1,9 @@
+import { BUSINESS_SLUG } from "./business";
+
 /** Constructores de rutas tenant-aware. Evita strings sueltos por toda la app. */
 export const routes = {
-  menu: (slug: string) => `/t/${slug}/menu`,
+  /** La carta pública de Clicks vive en la raíz del sitio (la URL que se comparte). */
+  menu: (slug: string) => (slug === BUSINESS_SLUG ? "/" : `/t/${slug}/menu`),
   login: (slug: string) => `/t/${slug}/login`,
   caja: (slug: string) => `/t/${slug}/caja`,
   cocina: (slug: string) => `/t/${slug}/cocina`,

@@ -331,8 +331,8 @@ async function main() {
   // 1. Páginas públicas y protección de staff.
   section("1. Páginas");
   for (const [label, route, expect] of [
-    ["Inicio", "/", [200, 307, 308]],
-    ["Carta", `/t/${SLUG}/menu`, [200]],
+    ["Carta (inicio del sitio)", "/", [200]],
+    ["Dirección vieja de la carta redirige", `/t/${SLUG}/menu`, [307, 308]],
     ["Ingreso del equipo", `/t/${SLUG}/login`, [200]],
   ]) {
     const started = performance.now();
