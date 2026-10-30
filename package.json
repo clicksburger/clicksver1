@@ -1,16 +1,42 @@
 {
-  "name": "clicks-burger",
-  "version": "1.0.0",
-  "description": "Clicks Burger — Sistema de Comandera",
-  "main": "server.js",
-  "bin": "server.js",
-  "pkg": {
-    "targets": [
-      "node20-win-x64"
-    ],
-    "outputPath": "."
+  "name": "clicks-next",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Clicks - Comandera SaaS multi-tenant (Next.js + Supabase)",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "db:types": "supabase gen types typescript --local > src/types/db.types.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "~2.45.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.460.0",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^2.5.4",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.1"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.14.2"
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.1.0",
+    "postcss": "^8.4.49",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.9",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3"
   }
 }

@@ -1,4 +1,12 @@
-node_modules/
-*.exe
-cb_cola.json
-REBUILD.bat
+/node_modules
+/.next
+/out
+/build
+.env
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+# Corridas de scripts/simulate-session.mjs
+/.qa-session

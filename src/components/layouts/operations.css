@@ -1,0 +1,334 @@
+/*
+ * Pantallas operativas (caja y cocina).
+ *
+ * Los tamaños son fluidos: cada medida es un clamp(mínimo, relativo a la
+ * pantalla, máximo). Una notebook de 1366px usa los mínimos, un monitor de
+ * 1920px queda en el medio y recién en 2560px se llega a los máximos. El alto
+ * también limita (vh) los números grandes para pantallas anchas pero bajas.
+ * Modo monitor sólo cambia los tokens; las reglas son las mismas.
+ */
+.ops-board {
+  --ops-pad-x: clamp(16px, 1.6vw, 36px);
+  --ops-h1: clamp(22px, 1.5vw, 28px);
+  --ops-col: clamp(300px, 21vw, 360px);
+  --ops-gap: clamp(14px, 1vw, 20px);
+  --ops-pad: clamp(16px, 1.15vw, 22px);
+  --ops-num: clamp(34px, min(2.4vw, 4.2vh), 46px);
+  --ops-name: clamp(15px, 0.95vw, 18px);
+  --ops-item: clamp(14px, 0.9vw, 17px);
+  --ops-note: clamp(13px, 0.8vw, 15px);
+  --ops-total: clamp(15px, 0.9vw, 17px);
+  --ops-contact: clamp(13px, 0.75vw, 14px);
+  --ops-state: 13px;
+  --ops-btn: clamp(14px, 0.8vw, 15px);
+  --ops-btn-h: 44px;
+  --ops-tab: clamp(14px, 0.85vw, 16px);
+  --ops-tab-h: clamp(44px, 2.7vw, 52px);
+  --ops-k-num: clamp(40px, min(2.9vw, 5vh), 56px);
+  --ops-k-type: clamp(14px, 0.9vw, 17px);
+  --ops-k-item: clamp(17px, 1.2vw, 23px);
+  --ops-k-qty: clamp(15px, 1vw, 20px);
+  --ops-k-var: clamp(14px, 0.95vw, 18px);
+  --ops-k-note: clamp(15px, 1vw, 19px);
+  --ops-timer: clamp(18px, 1.25vw, 24px);
+  --ops-k-min-h: clamp(220px, 26vh, 270px);
+}
+.staff-monitor .ops-board {
+  --ops-pad-x: clamp(16px, 1.5vw, 32px);
+  --ops-h1: clamp(24px, 1.6vw, 32px);
+  --ops-col: clamp(320px, 22vw, 420px);
+  --ops-gap: clamp(16px, 1.15vw, 24px);
+  --ops-pad: clamp(18px, 1.3vw, 26px);
+  --ops-num: clamp(40px, min(2.6vw, 4.6vh), 58px);
+  --ops-name: clamp(17px, 1.05vw, 22px);
+  --ops-item: clamp(16px, 1vw, 21px);
+  --ops-note: clamp(14px, 0.9vw, 18px);
+  --ops-total: clamp(17px, 1.05vw, 21px);
+  --ops-contact: clamp(14px, 0.85vw, 16px);
+  --ops-state: clamp(13px, 0.8vw, 15px);
+  --ops-btn: clamp(15px, 0.9vw, 17px);
+  --ops-btn-h: clamp(44px, 2.6vw, 50px);
+  --ops-tab: clamp(15px, 0.95vw, 18px);
+  --ops-tab-h: clamp(46px, 2.9vw, 56px);
+  --ops-k-num: clamp(44px, min(2.9vw, 5.2vh), 62px);
+  --ops-k-type: clamp(15px, 0.95vw, 19px);
+  --ops-k-item: clamp(19px, 1.25vw, 26px);
+  --ops-k-qty: clamp(17px, 1.1vw, 23px);
+  --ops-k-var: clamp(16px, 1.05vw, 21px);
+  --ops-k-note: clamp(16px, 1.05vw, 21px);
+  --ops-timer: clamp(20px, 1.4vw, 28px);
+}
+
+/* ── Barra de opciones de pantalla ── */
+.ops-screen-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px clamp(16px, 1.6vw, 36px);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.ops-screen-toolbar button {
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 13px;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 42px;
+}
+.ops-screen-toolbar button:not(.hidden) {
+  display: inline-flex;
+}
+.ops-screen-toolbar button:hover {
+  background: var(--color-surface-2);
+}
+.ops-screen-toolbar button[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: var(--color-bg);
+  border-color: var(--color-primary);
+}
+.ops-screen-toolbar button:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+/* En monitor la barra queda discreta: la pantalla es para los pedidos. */
+.staff-monitor .ops-screen-toolbar {
+  padding-block: 6px;
+  gap: 6px;
+}
+.staff-monitor .ops-screen-toolbar button {
+  min-height: 36px;
+  padding: 6px 11px;
+  font-size: 12px;
+  gap: 6px;
+}
+.staff-monitor .ops-screen-toolbar button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Tablero ── */
+.ops-board {
+  width: 100%;
+  max-width: none;
+  padding: clamp(18px, 1.5vw, 28px) var(--ops-pad-x);
+}
+.ops-board-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: clamp(14px, 1.2vw, 22px);
+}
+.ops-board-heading h1 {
+  font-size: var(--ops-h1);
+  font-weight: 900;
+}
+.ops-board-heading p {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin-top: 5px;
+}
+/* "Cargar pedido" abre la carta: en modo monitor no corresponde mostrarlo. */
+.staff-monitor .ops-load-order {
+  display: none;
+}
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--ops-col)), 1fr));
+  gap: var(--ops-gap);
+  align-items: start;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+/* ── Tarjeta de caja ── */
+.ops-order {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border-top: 4px solid var(--color-primary);
+  padding: var(--ops-pad);
+  gap: clamp(14px, 1vw, 20px);
+}
+.ops-order-number {
+  font-size: var(--ops-num);
+  line-height: 1.05;
+}
+.ops-order-name {
+  font-size: var(--ops-name);
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+.ops-order .ops-item-list {
+  gap: clamp(9px, 0.7vw, 13px);
+}
+.ops-item-list > li {
+  font-size: var(--ops-item);
+  line-height: 1.5;
+}
+.ops-item-list .ops-item-note {
+  font-size: var(--ops-note);
+  background: var(--color-surface-3);
+  border-left: 3px solid var(--color-primary);
+  padding: 6px 9px;
+  margin-top: 5px;
+  font-style: normal;
+}
+.ops-order-actions {
+  gap: 10px;
+}
+.ops-order-actions button,
+.ops-order-actions a {
+  min-height: var(--ops-btn-h);
+  font-size: var(--ops-btn);
+  padding: 10px 14px;
+}
+.ops-order-actions > div > span {
+  font-size: var(--ops-btn);
+}
+.ops-order .ops-print {
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 38px;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+.ops-order .ops-contact {
+  font-size: var(--ops-contact);
+  line-height: 1.65;
+}
+.ops-order-total {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+  font-weight: 700;
+  font-size: var(--ops-total);
+}
+.ops-state > span {
+  font-size: var(--ops-state);
+  padding: 5px 10px;
+}
+.ops-order[data-state="listo"] {
+  border-top-color: #69d893;
+}
+.ops-order[data-state="listo"] .ops-state > span {
+  color: #a6edc0;
+  background: #163d2b;
+}
+.ops-order[data-state="en_cocina"] .ops-state > span {
+  color: #ffe574;
+}
+
+/* ── Pestañas y vacío ── */
+.ops-board [role="tablist"] {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  white-space: nowrap;
+}
+.ops-board [role="tab"] {
+  min-height: var(--ops-tab-h);
+  font-size: var(--ops-tab);
+}
+.ops-empty {
+  border: 1px dashed var(--color-border);
+  padding: clamp(36px, 5vh, 60px) 20px;
+  text-align: center;
+  border-radius: 12px;
+  font-size: clamp(17px, 1.1vw, 21px);
+  color: var(--color-muted);
+}
+
+/* ── Tarjeta de cocina ── */
+.ops-board .ops-kitchen-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  min-height: var(--ops-k-min-h);
+  padding: var(--ops-pad);
+}
+.ops-kitchen-card > div:first-child {
+  flex-wrap: wrap;
+}
+.ops-kitchen-card .ops-kitchen-number {
+  font-size: var(--ops-k-num);
+}
+.ops-kitchen-card .ops-kitchen-type {
+  font-size: var(--ops-k-type);
+  flex-wrap: wrap;
+}
+.ops-kitchen-card .ops-kitchen-items > li {
+  font-size: var(--ops-k-item);
+  line-height: 1.4;
+}
+.ops-kitchen-card .ops-kitchen-items > li > span:first-child {
+  font-size: var(--ops-k-qty);
+}
+.ops-kitchen-card .ops-kitchen-items .ops-kitchen-variant {
+  font-size: var(--ops-k-var);
+}
+.staff-monitor .ops-kitchen-items .ops-kitchen-variant {
+  display: block;
+}
+.ops-kitchen-card .ops-kitchen-note {
+  display: block;
+  background: var(--color-surface-3);
+  padding: 8px 10px;
+  border-left: 4px solid var(--color-primary);
+  color: var(--color-text);
+  font-style: normal;
+  font-weight: 700;
+  margin-top: 8px;
+  font-size: var(--ops-k-note);
+}
+.ops-board .ops-kitchen-timer {
+  font-size: var(--ops-timer);
+}
+.ops-urgency {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 7px;
+}
+.ops-kitchen-ready {
+  border-left-color: #69d893 !important;
+}
+.ops-ready-label {
+  color: #97eab6;
+  font-weight: 900;
+  font-size: clamp(15px, 0.95vw, 18px);
+}
+
+/* ── Celular ── */
+@media (max-width: 640px) {
+  .ops-screen-toolbar {
+    padding: 10px 12px;
+    gap: 6px;
+    justify-content: flex-start;
+  }
+  .ops-screen-toolbar button {
+    font-size: 12px;
+    padding: 9px;
+  }
+  .ops-board,
+  .staff-monitor .ops-board {
+    --ops-pad: 17px;
+    --ops-num: 40px;
+    --ops-h1: 25px;
+    --ops-k-num: 47px;
+    --ops-k-item: 21px;
+    padding: 20px 12px;
+  }
+  .staff-monitor .ops-board {
+    --ops-k-item: 23px;
+  }
+}
+@media print {
+  .ops-screen-toolbar {
+    display: none !important;
+  }
+}

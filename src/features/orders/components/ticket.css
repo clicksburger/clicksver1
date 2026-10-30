@@ -1,0 +1,227 @@
+.ticket-page {
+  min-height: 100vh;
+  padding: 25px 12px 40px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 22px;
+  background: #e8ebed;
+  color: #171717;
+}
+.ticket-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.ticket-controls button {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  padding: 11px 17px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  background: #202a30;
+  color: #fff8df;
+}
+.ticket-controls button:first-child {
+  background: #ffd21c;
+  color: #131e24;
+}
+.ticket-controls button:focus-visible {
+  outline: 3px solid #8d6700;
+  outline-offset: 3px;
+}
+.ticket-print-hint {
+  max-width: 480px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #5c6268;
+}
+.ticket-paper {
+  box-sizing: border-box;
+  width: 80mm;
+  max-width: 100%;
+  background: white;
+  color: #000;
+  padding: 5mm 4mm;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  line-height: 1.4;
+  box-shadow: 0 5px 24px #0002;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.ticket-paper header {
+  text-align: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 4mm;
+}
+.ticket-brand {
+  font-size: 18pt;
+  font-weight: 900;
+}
+.ticket-number {
+  font-size: 31pt;
+  font-weight: 900;
+  line-height: 1.15;
+  margin: 2mm 0;
+}
+.ticket-type {
+  font-size: 12pt;
+  font-weight: 900;
+  border: 1px solid #000;
+  padding: 1mm 2mm;
+  display: inline-block;
+}
+.ticket-caption {
+  font-size: 8pt;
+  margin-top: 2mm;
+}
+.ticket-section {
+  border-bottom: 1px dashed #000;
+  padding: 3mm 0;
+}
+.ticket-section h2 {
+  font-size: 9pt;
+  font-weight: 900;
+  margin-bottom: 1.5mm;
+}
+.ticket-customer-name {
+  font-size: 12pt;
+  font-weight: 900;
+}
+.ticket-section p {
+  margin: 0.7mm 0;
+}
+.ticket-warning {
+  border: 1px solid #000;
+  padding: 2mm;
+  margin-top: 2mm;
+  font-weight: 700;
+}
+.ticket-meta {
+  font-size: 8.5pt;
+}
+.ticket-items {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.ticket-items th {
+  text-align: left;
+  border-bottom: 1px solid #000;
+  padding: 2mm 0;
+  font-size: 8pt;
+}
+.ticket-items th:first-child {
+  width: 9mm;
+}
+.ticket-items th:last-child {
+  width: 22mm;
+  text-align: right;
+}
+.ticket-items td {
+  vertical-align: top;
+  padding: 2.5mm 0;
+  border-bottom: 1px dotted #777;
+  font-size: 9pt;
+}
+.ticket-items td:first-child {
+  font-size: 11pt;
+  font-weight: 900;
+}
+.ticket-items td:last-child {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 9pt;
+}
+.ticket-product-name {
+  font-weight: 900;
+}
+.ticket-variant,
+.ticket-unit-price {
+  font-size: 8pt;
+  margin-top: 1mm;
+}
+.ticket-note {
+  font-size: 9pt;
+  border-left: 2px solid #000;
+  padding-left: 2mm;
+  margin-top: 1.5mm;
+  font-weight: 700;
+  white-space: pre-wrap;
+}
+.ticket-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 900;
+  font-size: 12pt;
+  padding: 3mm 0 1mm;
+}
+.ticket-small {
+  font-size: 8pt;
+}
+.ticket-footer {
+  padding-top: 4mm;
+  text-align: center;
+  font-size: 8pt;
+}
+.ticket-footer strong {
+  display: block;
+  margin-bottom: 1mm;
+}
+.ticket-paper tr {
+  break-inside: avoid;
+}
+.ticket-paper header,
+.ticket-total,
+.ticket-footer {
+  break-inside: avoid;
+}
+@media print {
+  @page {
+    size: auto;
+    margin: 4mm;
+  }
+  html,
+  body {
+    background: white !important;
+    min-height: 0 !important;
+  }
+  .ticket-page {
+    min-height: 0 !important;
+    background: white !important;
+    padding: 0;
+    display: block;
+  }
+  .ticket-paper {
+    width: 72mm;
+    max-width: 100%;
+    padding: 0;
+    box-shadow: none;
+    font-size: 10pt;
+  }
+  .ticket-controls,
+  .ticket-print-hint {
+    display: none !important;
+  }
+  .clicks-app {
+    background: none !important;
+    min-height: 0 !important;
+  }
+  .ticket-paper * {
+    color: #000 !important;
+  }
+  .ticket-paper a {
+    text-decoration: none;
+  }
+  .ticket-section {
+    break-inside: avoid;
+  }
+}

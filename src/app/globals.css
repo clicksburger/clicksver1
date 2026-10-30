@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Tokens de diseño por defecto (tema base "Clicks Burger").
+ * El TenantProvider sobrescribe --color-primary / --color-bg / --color-surface
+ * / --color-text en runtime según el branding de cada tenant.
+ */
+:root {
+  --color-bg: #131e24;
+  --color-surface: #1c2a31;
+  --color-surface-2: #23343c;
+  --color-surface-3: #2d414a;
+  --color-primary: #ffd21c;
+  --color-primary-soft: #ffe574;
+  --color-text: #fff8df;
+  --color-muted: #b9c2c1;
+  --color-border: #3a4b53;
+  --color-danger: #d93025;
+  --color-success: #1e8c45;
+  --color-info: #4a9eff;
+}
+
+.clicks-logo {
+  width: 130px;
+  height: auto;
+  object-fit: contain;
+}
+.clicks-app {
+  background-image:
+    radial-gradient(#fff8df08 0.7px, transparent 0.7px),
+    linear-gradient(#fff8df03 1px, transparent 1px),
+    linear-gradient(90deg, #fff8df03 1px, transparent 1px);
+  background-size:
+    5px 5px,
+    48px 48px,
+    48px 48px;
+}
+.clicks-retro {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -0.055em;
+}
+
+@layer base {
+  body {
+    @apply min-h-screen bg-bg font-sans text-text antialiased;
+  }
+}
+
+/* Utilidad para ocultar contenido visualmente pero mantenerlo accesible */
+@layer utilities {
+  .no-print {
+    @media print {
+      display: none !important;
+    }
+  }
+}
+
+/* Al imprimir, el documento va en blanco (la app es oscura en pantalla). */
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+}

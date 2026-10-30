@@ -1,0 +1,99 @@
+[
+  {
+    "nombre": "CHEESEBURGER",
+    "categoria": "Hamburguesas",
+    "descripcion": "Carne, doble queso cheddar, ketchup, mayonesa Clicks y cebolla brunoise. Incluye papas.",
+    "imagen": "/img/cheeseburger.jpg",
+    "precios": [11000, 14000, 17000]
+  },
+  {
+    "nombre": "AMERICAN CLICKS",
+    "categoria": "Hamburguesas",
+    "descripcion": "Carne, doble queso cheddar, bacon, lechuga, tomate, cebolla y aderezo Clicks. Incluye papas.",
+    "imagen": "/img/american-clicks.jpg",
+    "precios": [11500, 14500, 17500]
+  },
+  {
+    "nombre": "CUARTO CLICKS",
+    "categoria": "Hamburguesas",
+    "descripcion": "Carne, doble queso cheddar, ketchup, mostaza y cebolla brunoise. Incluye papas.",
+    "imagen": "/img/cuarto-clicks.jpg",
+    "precios": [11000, 14000, 17000]
+  },
+  {
+    "nombre": "CRISPY CLICKS",
+    "categoria": "Hamburguesas",
+    "descripcion": "Carne, doble queso, bacon, cebolla crispy y barbacoa. Incluye papas.",
+    "imagen": "/img/crispy-clicks.png",
+    "precios": [11500, 14500, 17500]
+  },
+  {
+    "nombre": "GOLDEN ONION CLICKS",
+    "categoria": "Hamburguesas",
+    "descripcion": "Carne, queso cheddar, cebolla grillada junto al blend y mayonesa Clicks. Incluye papas.",
+    "imagen": "/img/golden-onion-clicks.png",
+    "precios": [11000, 14000, 17000]
+  },
+  {
+    "nombre": "SUPREME BACON CLICKS",
+    "categoria": "Hamburguesas",
+    "descripcion": "Carne, doble queso cheddar, triple bacon y mayonesa Clicks. Incluye papas.",
+    "imagen": null,
+    "precios": [11500, 14500, 17500]
+  },
+  {
+    "nombre": "PAPAS FRITAS",
+    "aliases": ["Porción de Papas"],
+    "categoria": "Extras",
+    "descripcion": "Porción de papas fritas salpimentadas de 150 g.",
+    "imagen": "/img/papas-fritas.png",
+    "precio": 3500
+  },
+  {
+    "nombre": "BONIATOS",
+    "categoria": "Extras",
+    "descripcion": "Porción de boniatos salpimentados de 150 g.",
+    "imagen": "/img/boniatos.png",
+    "precio": 3500
+  },
+  {
+    "nombre": "DIP DE SALSAS",
+    "aliases": ["Mayonesa"],
+    "categoria": "Extras",
+    "descripcion": "Personalizá tu dip con las salsas que quieras. Las opciones aplican a cada unidad agregada.",
+    "imagen": "/img/dip-salsas.png",
+    "precio": 500,
+    "opciones": ["Mayo Clicks", "Salsa Clicks", "Ketchup", "Barbacoa", "Mostaza"]
+  },
+  {
+    "nombre": "COCA COLA LATA 354ML",
+    "aliases": ["Coca-Cola"],
+    "categoria": "Bebidas",
+    "descripcion": "Lata de 354 ml.",
+    "imagen": "/img/latacoca.jpg",
+    "precio": 2500
+  },
+  {
+    "nombre": "SPRITE LATA 354ML",
+    "aliases": ["Sprite"],
+    "categoria": "Bebidas",
+    "descripcion": "Lata de 354 ml.",
+    "imagen": "/img/latasprite.jpg",
+    "precio": 2500
+  },
+  {
+    "nombre": "PEPSI LATA 354ML",
+    "categoria": "Bebidas",
+    "descripcion": "Lata de 354 ml.",
+    "imagen": null,
+    "precio": 2500
+  },
+  {
+    "nombre": "COCA COLA ZERO LATA 354ML",
+    "aliases": ["Coca Zero"],
+    "categoria": "Bebidas",
+    "descripcion": "Lata de 354 ml.",
+    "imagen": "/img/latacocazero.jpg",
+    "precio": 2500
+  }
+]
