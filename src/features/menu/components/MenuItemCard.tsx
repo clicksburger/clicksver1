@@ -202,8 +202,12 @@ export const MenuItemCard = memo(function MenuItemCard({
           onChange={(event) => setObservations(event.target.value)}
           aria-describedby={`${formId}-count`}
           placeholder="Por ejemplo: sin sal. Máximo 150 caracteres."
-          className="mb-4 w-full resize-y rounded-xl border border-border bg-surface2 p-3 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full resize-y rounded-xl border border-border bg-surface2 p-3 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
         />
+      </div>
+      {/* Pie fijo: hijo directo del contenedor con scroll, así queda pegado al borde
+          inferior de la card (igual que el encabezado arriba) y nunca se corta. */}
+      <div className="cm-detail-footer">
         <button
           type="button"
           disabled={hasVariants && !chosen.length}

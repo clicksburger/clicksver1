@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { loadDashboard, loadShiftDashboard } from "@/features/dashboard/dashboard.client";
 import { money, orderTotal, periodStart, summarize } from "@/features/dashboard/summary";
+import { envioDe } from "@/features/envios/tarifas";
 import { ESTADO_LABEL } from "@/constants/order-states";
 import { routes } from "@/constants/routes";
 import type { Tenant } from "@/types/domain";
@@ -75,12 +76,13 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
         .replace(/^[=+@\-\t\r]/, "'$&")
         .replaceAll('"', '""')}"`;
     const rows = [
-      ["Pedido", "Fecha de creación", "Cliente", "Modalidad", "Total ARS"],
+      ["Pedido", "Fecha de creación", "Cliente", "Modalidad", "Envío ARS", "Total ARS"],
       ...summary.delivered.map((order) => [
         order.num,
         time(order.creadoEn),
         order.nombre ?? "",
         order.tipo,
+        envioDe(order),
         orderTotal(order),
       ]),
     ];
@@ -200,7 +202,10 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
                 <div className="cd-revenue">
                   <span>Ventas de pedidos entregados</span>
                   <strong>{money(summary.revenue)}</strong>
-                  <p>{summary.delivered.length} pedidos entregados en el período</p>
+                  <p>
+                    {summary.delivered.length} pedidos entregados en el período
+                    {summary.envios > 0 ? ` · incluye ${money(summary.envios)} de envíos` : ""}
+                  </p>
                   <ShoppingBag className="cd-revenue-icon" size={76} strokeWidth={1} />
                 </div>
                 <div className="cd-stat">

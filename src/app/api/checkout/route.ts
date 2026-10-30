@@ -12,7 +12,9 @@ import {
 import { mapMenu } from "@/features/menu/mappers";
 import { mapTenant } from "@/features/tenants/mappers";
 import { estaAbierto } from "@/features/tenants/horarios";
-import type { CheckoutDetails, PedidoItem } from "@/types/domain";
+import { cotizarEnvio } from "@/features/envios/cotizar.server";
+import { totalProductos } from "@/features/envios/tarifas";
+import type { CheckoutDetails, CotizacionEnvio, PedidoItem } from "@/types/domain";
 import type { Json } from "@/types/db.types";
 
 export const runtime = "nodejs";
@@ -52,12 +54,15 @@ export async function POST(request: Request) {
       tipo: string,
       items: PedidoItem[],
       checkout: CheckoutDetails,
+      costoEnvio: number | null,
     ) => {
       const phone = (process.env.CLICKS_WHATSAPP_NUMBER ?? "543518737099").replace(/\D/g, "");
       return NextResponse.json(
         {
           num,
-          total: items.reduce((sum, item) => sum + item.precio * item.cantidad, 0),
+          total: totalProductos(items) + (costoEnvio ?? 0),
+          costoEnvio,
+          envioAConfirmar: tipo === "delivery" && costoEnvio == null,
           whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(num, nombre, tipo, items, checkout))}`,
         },
         { headers: { "Cache-Control": "no-store" } },
@@ -66,7 +71,7 @@ export async function POST(request: Request) {
     const findExisting = async () => {
       const result = await db
         .from("pedidos")
-        .select("num,nombre,tipo,items")
+        .select("num,nombre,tipo,items,costo_envio")
         .eq("id", input.requestId)
         .eq("tenant_id", tenant.id)
         .maybeSingle();
@@ -89,6 +94,7 @@ export async function POST(request: Request) {
         result.data.tipo,
         items,
         checkout,
+        result.data.costo_envio == null ? null : Number(result.data.costo_envio),
       );
     };
     const existing = await findExisting();
@@ -111,6 +117,28 @@ export async function POST(request: Request) {
     } catch (error) {
       return respondError(error instanceof Error ? error.message : "Revisá el carrito.", 409);
     }
+    const verifiedTotal = totalProductos(priced);
+    if (Math.abs(verifiedTotal - input.expectedTotal) > 0.005)
+      return respondError(
+        "La carta cambió de precio. Cerrá este paso, actualizá el menú y revisá el total antes de confirmar.",
+        409,
+      );
+    // El envío lo decide el servidor; si no coincide con lo que vio el cliente, se le muestra el nuevo.
+    let envio: CotizacionEnvio | undefined;
+    if (input.tipo === "delivery") {
+      envio = await cotizarEnvio(db, tenant, input.direccion);
+      if (envio.costo !== (input.expectedEnvio ?? null))
+        return NextResponse.json(
+          {
+            error:
+              envio.costo == null
+                ? "El envío a esta dirección quedó a confirmar por WhatsApp. Revisalo y volvé a confirmar."
+                : "El costo de envío se actualizó. Revisá el total y volvé a confirmar.",
+            envio,
+          },
+          { status: 409 },
+        );
+    }
     const checkout: CheckoutDetails = {
       version: 1,
       telefono: input.telefono,
@@ -118,13 +146,9 @@ export async function POST(request: Request) {
       referencia: input.tipo === "delivery" ? input.referencia || null : null,
       pago: input.pago,
       requestHash,
+      ...(envio ? { envio } : {}),
     };
-    const verifiedTotal = priced.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
-    if (Math.abs(verifiedTotal - input.expectedTotal) > 0.005)
-      return respondError(
-        "La carta cambió de precio. Cerrá este paso, actualizá el menú y revisá el total antes de confirmar.",
-        409,
-      );
+    const costoEnvio = envio?.costo ?? null;
     const items = attachCheckout(priced, checkout);
     // UUID estable evita pedidos duplicados en reintentos. La restricción (tenant_id,num)
     // resuelve colisiones de numeración con otros dispositivos o con la RPC existente.
@@ -146,8 +170,9 @@ export async function POST(request: Request) {
         tipo: input.tipo,
         estado: "nuevo",
         items: items as unknown as Json,
+        costo_envio: costoEnvio,
       });
-      if (!error) return responseFor(num, input.nombre, input.tipo, items, checkout);
+      if (!error) return responseFor(num, input.nombre, input.tipo, items, checkout, costoEnvio);
       if (error.code !== "23505") throw error;
       const duplicate = await findExisting();
       if (duplicate) return duplicate;

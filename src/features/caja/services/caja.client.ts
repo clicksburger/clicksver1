@@ -45,11 +45,11 @@ export async function abrirCaja(input: {
   return data;
 }
 
-/** Ventas (total + cantidad de pedidos entregados) desde un instante hasta ahora. */
+/** Ventas (total con envíos, cantidad de pedidos entregados y envíos) desde un instante hasta ahora. */
 export async function ventasActuales(
   tenantId: string,
   desde: string,
-): Promise<{ total: number; cantidad: number }> {
+): Promise<{ total: number; cantidad: number; envios: number }> {
   const supabase = createSupabaseBrowserClient();
   const { data, error } = await supabase.rpc("caja_ventas", {
     p_tenant_id: tenantId,
@@ -57,7 +57,11 @@ export async function ventasActuales(
   });
   if (error) throw new Error(error.message);
   const row = (data ?? [])[0];
-  return { total: Number(row?.total ?? 0), cantidad: Number(row?.cantidad ?? 0) };
+  return {
+    total: Number(row?.total ?? 0),
+    cantidad: Number(row?.cantidad ?? 0),
+    envios: Number(row?.envios ?? 0),
+  };
 }
 
 export async function cerrarCaja(

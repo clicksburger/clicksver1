@@ -45,7 +45,11 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
 
   const [cargando, setCargando] = useState(true);
   const [turno, setTurno] = useState<CajaTurno | null>(null);
-  const [ventas, setVentas] = useState<{ total: number; cantidad: number } | null>(null);
+  const [ventas, setVentas] = useState<{
+    total: number;
+    cantidad: number;
+    envios: number;
+  } | null>(null);
   const [historial, setHistorial] = useState<CajaTurno[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -188,6 +192,11 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
             <div className="rounded-lg bg-surface2 p-3">
               <p className="text-xs text-muted">Ventas del turno</p>
               <p className="font-bold text-primary">{formatPrecio(ventas?.total ?? 0)}</p>
+              {(ventas?.envios ?? 0) > 0 && (
+                <p className="text-xs text-muted">
+                  incluye {formatPrecio(ventas?.envios ?? 0)} de envíos
+                </p>
+              )}
             </div>
             <div className="rounded-lg bg-surface2 p-3">
               <p className="text-xs text-muted">Pedidos</p>

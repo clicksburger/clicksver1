@@ -1,20 +1,27 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CheckCircle2, MessageCircle } from "lucide-react";
+import { CheckCircle2, Loader2, MapPin, MessageCircle } from "lucide-react";
 import { formatPrecio } from "@/lib/format";
-import type { PedidoItem } from "@/types/domain";
+import { MOTIVO_A_CONFIRMAR, formatKm } from "@/features/envios/tarifas";
+import type { CotizacionEnvio, PedidoItem } from "@/types/domain";
 
 interface Receipt {
   num: number;
   total: number;
   whatsappUrl: string;
+  costoEnvio?: number | null;
+  envioAConfirmar?: boolean;
 }
 export interface CheckoutAttempt {
   requestId?: string;
   body?: string;
   receipt?: Receipt;
+  /** Última cotización de envío y la dirección a la que corresponde. */
+  envio?: { para: string; cotizacion: CotizacionEnvio };
 }
+
+const normalizarDireccion = (value: string) => value.trim().replace(/\s+/g, " ");
 
 export function CheckoutForm({
   items,
@@ -48,20 +55,77 @@ export function CheckoutForm({
   const pendingBody = useRef<string | null>(attempt.body ?? null);
   const [locked, setLocked] = useState(!!attempt.body);
   const total = items.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+  const [direccion, setDireccion] = useState(previous?.direccion ?? "");
+  const [envio, setEnvio] = useState(attempt.envio ?? null);
+  const [cotizando, setCotizando] = useState(false);
+  const [envioError, setEnvioError] = useState<string | null>(null);
+  const cotizacionEnCurso = useRef<string | null>(null);
+  const direccionActual = normalizarDireccion(direccion);
+  const cotizacion =
+    tipo === "delivery" && envio && envio.para === direccionActual ? envio.cotizacion : null;
+  const costoEnvio = cotizacion?.estado === "calculado" ? cotizacion.costo : 0;
+
+  function guardarEnvio(para: string, nueva: CotizacionEnvio) {
+    const value = { para, cotizacion: nueva };
+    attempt.envio = value;
+    setEnvio(value);
+  }
+
+  /** Pide al servidor el costo de envío de la dirección escrita. Devuelve la cotización o null. */
+  async function cotizarEnvio(): Promise<CotizacionEnvio | null> {
+    const para = direccionActual;
+    if (para.length < 5) {
+      setEnvioError("Ingresá calle y altura para calcular el envío.");
+      return null;
+    }
+    if (envio?.para === para) return envio.cotizacion;
+    if (cotizacionEnCurso.current === para) return null;
+    cotizacionEnCurso.current = para;
+    setCotizando(true);
+    setEnvioError(null);
+    try {
+      const response = await fetch("/api/envio/cotizar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direccion: para }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No se pudo calcular el envío.");
+      guardarEnvio(para, result as CotizacionEnvio);
+      return result as CotizacionEnvio;
+    } catch (cause) {
+      setEnvioError(
+        cause instanceof Error && cause.name !== "TimeoutError"
+          ? cause.message
+          : "No se pudo calcular el envío. Probá de nuevo.",
+      );
+      return null;
+    } finally {
+      cotizacionEnCurso.current = null;
+      setCotizando(false);
+    }
+  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy.current || receipt || cerrado) return;
     const form = new FormData(event.currentTarget);
+    if (!pendingBody.current && tipo === "delivery" && !cotizacion) {
+      // Primero se muestra el costo de envío; el cliente confirma con un segundo toque.
+      await cotizarEnvio();
+      return;
+    }
     if (!pendingBody.current) {
       requestId.current ??= crypto.randomUUID();
       pendingBody.current = JSON.stringify({
         expectedTotal: total,
+        expectedEnvio: tipo === "delivery" ? (cotizacion?.costo ?? null) : undefined,
         requestId: requestId.current,
         nombre: form.get("nombre"),
         telefono: form.get("telefono"),
         tipo,
-        direccion: form.get("direccion") ?? "",
+        direccion: tipo === "delivery" ? direccionActual : "",
         referencia: form.get("referencia") ?? "",
         pago: form.get("pago"),
         items: items.map(({ itemId, variante, cantidad, obs }) => ({
@@ -96,6 +160,8 @@ export function CheckoutForm({
           pendingBody.current = null;
           delete attempt.body;
           setLocked(false);
+          // El servidor recalculó el envío: se muestra el valor nuevo para que el cliente lo vea.
+          if (result.envio) guardarEnvio(direccionActual, result.envio as CotizacionEnvio);
         }
         throw new Error(result.error || "No se pudo registrar el pedido.");
       }
@@ -128,6 +194,17 @@ export function CheckoutForm({
           completar el mensaje.
         </p>
         <p className="font-display text-2xl text-primary">{formatPrecio(receipt.total)}</p>
+        {receipt.costoEnvio != null && receipt.costoEnvio > 0 && (
+          <p className="-mt-3 text-xs text-muted">
+            Incluye envío de {formatPrecio(receipt.costoEnvio)}
+          </p>
+        )}
+        {receipt.envioAConfirmar && (
+          <p className="rounded-xl border border-primary px-3 py-2 text-sm">
+            El costo del envío se confirma por WhatsApp: el local te va a responder con el valor
+            antes de preparar el pedido.
+          </p>
+        )}
         <a
           href={receipt.whatsappUrl}
           target="_blank"
@@ -219,19 +296,75 @@ export function CheckoutForm({
         </fieldset>
         {tipo === "delivery" && (
           <>
-            <label className="flex flex-col gap-2 text-sm font-bold">
-              Dirección de entrega *
-              <input
-                name="direccion"
-                defaultValue={previous?.direccion}
-                required
-                minLength={5}
-                maxLength={240}
-                autoComplete="street-address"
-                placeholder="Calle, número, barrio y localidad"
-                className="rounded-xl border border-border bg-surface2 px-3 py-3 text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </label>
+            <div className="flex flex-col gap-2 text-sm font-bold">
+              <label htmlFor="checkout-direccion">Dirección de entrega *</label>
+              <div className="flex gap-2">
+                <input
+                  id="checkout-direccion"
+                  name="direccion"
+                  value={direccion}
+                  onChange={(event) => {
+                    setDireccion(event.target.value);
+                    setEnvioError(null);
+                  }}
+                  onBlur={() => {
+                    if (direccionActual.length >= 5 && envio?.para !== direccionActual)
+                      void cotizarEnvio();
+                  }}
+                  required
+                  minLength={5}
+                  maxLength={240}
+                  autoComplete="street-address"
+                  placeholder="Calle y altura, barrio"
+                  className="min-w-0 flex-1 rounded-xl border border-border bg-surface2 px-3 py-3 text-text focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => void cotizarEnvio()}
+                  disabled={cotizando || direccionActual.length < 5 || !!cotizacion}
+                  className="shrink-0 rounded-xl border border-primary px-3 text-xs font-bold text-primary disabled:opacity-40"
+                >
+                  Calcular envío
+                </button>
+              </div>
+              <div aria-live="polite" className="font-normal">
+                {cotizando && (
+                  <p className="flex items-center gap-2 text-xs text-muted">
+                    <Loader2 size={14} className="animate-spin" /> Calculando envío…
+                  </p>
+                )}
+                {!cotizando && envioError && <p className="text-xs text-danger">{envioError}</p>}
+                {!cotizando && cotizacion?.estado === "calculado" && (
+                  <div className="flex items-start gap-2 rounded-xl border border-border bg-surface2 p-3 text-xs leading-relaxed">
+                    <MapPin size={16} className="mt-0.5 shrink-0 text-primary" />
+                    <div className="flex-1">
+                      <p className="text-text">{cotizacion.direccion}</p>
+                      <p className="text-muted">
+                        A {formatKm(cotizacion.km)} del local · Envío{" "}
+                        <strong className="text-primary">{formatPrecio(cotizacion.costo)}</strong>
+                      </p>
+                      <p className="mt-1 text-muted">
+                        ¿No es tu dirección? Corregila agregando el barrio.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {!cotizando && cotizacion?.estado === "a_confirmar" && (
+                  <div className="rounded-xl border border-primary p-3 text-xs leading-relaxed">
+                    <p className="font-bold text-text">Envío a confirmar por WhatsApp</p>
+                    <p className="text-muted">
+                      {MOTIVO_A_CONFIRMAR[cotizacion.motivo]} Podés enviar el pedido igual: el local
+                      te confirma el costo del envío por WhatsApp antes de prepararlo.
+                    </p>
+                  </div>
+                )}
+                {!cotizando && !cotizacion && !envioError && (
+                  <p className="text-xs text-muted">
+                    El costo del envío se calcula según la distancia al local.
+                  </p>
+                )}
+              </div>
+            </div>
             <label className="flex flex-col gap-2 text-sm font-bold">
               Piso, departamento o referencia
               <input
@@ -242,10 +375,6 @@ export function CheckoutForm({
                 className="rounded-xl border border-border bg-surface2 px-3 py-3 text-text focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </label>
-            <p className="text-xs leading-relaxed text-muted">
-              El costo y la disponibilidad del envío se confirman según la dirección. No están
-              incluidos en el total de productos.
-            </p>
           </>
         )}
         <fieldset className="border-t border-border pt-4">
@@ -274,9 +403,35 @@ export function CheckoutForm({
           <p className="mt-3 text-xs text-muted">El local te indicará cómo completar el pago.</p>
         </fieldset>
       </fieldset>
-      <div className="flex justify-between border-t border-border pt-4">
-        <span>Total de productos</span>
-        <strong className="font-display text-2xl text-primary">{formatPrecio(total)}</strong>
+      <div className="flex flex-col gap-1 border-t border-border pt-4">
+        {tipo === "delivery" && (
+          <>
+            <div className="flex justify-between text-sm text-muted">
+              <span>Productos</span>
+              <span>{formatPrecio(total)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-muted">
+              <span>Envío</span>
+              <span>
+                {cotizacion?.estado === "calculado"
+                  ? formatPrecio(cotizacion.costo)
+                  : cotizacion?.estado === "a_confirmar"
+                    ? "A confirmar"
+                    : "Ingresá la dirección"}
+              </span>
+            </div>
+          </>
+        )}
+        <div className="flex items-baseline justify-between">
+          <span>
+            {tipo === "delivery" && cotizacion?.estado !== "calculado"
+              ? "Total de productos"
+              : "Total"}
+          </span>
+          <strong className="font-display text-2xl text-primary">
+            {formatPrecio(total + costoEnvio)}
+          </strong>
+        </div>
       </div>
       {error && (
         <p role="alert" className="text-sm text-danger">
@@ -286,15 +441,19 @@ export function CheckoutForm({
       {cerrado && <p className="text-sm text-danger">El local está cerrado en este momento.</p>}
       <button
         type="submit"
-        disabled={loading || cerrado}
+        disabled={loading || cerrado || cotizando}
         className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-bold text-bg disabled:opacity-50"
       >
         <MessageCircle size={20} />
         {loading
           ? "Guardando pedido…"
-          : locked
-            ? "Reintentar y abrir WhatsApp"
-            : "Confirmar y pedir por WhatsApp"}
+          : cotizando
+            ? "Calculando envío…"
+            : locked
+              ? "Reintentar y abrir WhatsApp"
+              : tipo === "delivery" && !cotizacion
+                ? "Calcular envío y continuar"
+                : "Confirmar y pedir por WhatsApp"}
       </button>
       <p className="text-xs leading-relaxed text-muted">
         Tu pedido quedará registrado en el local. En WhatsApp, revisá el mensaje y pulsá Enviar.

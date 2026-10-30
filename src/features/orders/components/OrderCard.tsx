@@ -5,6 +5,7 @@ import { EstadoBadge } from "./EstadoBadge";
 import { OrderItems } from "./OrderItems";
 import { OrderContact } from "./OrderContact";
 import type { Pedido } from "@/types/domain";
+import { envioPendiente, totalConEnvio, totalProductos } from "@/features/envios/tarifas";
 
 const TIPO_LABEL: Record<string, string> = {
   delivery: "Delivery",
@@ -60,11 +61,21 @@ export function OrderCard({
       </div>
 
       <OrderItems items={pedido.items} />
-      <OrderContact checkout={pedido.checkout} />
+      <OrderContact checkout={pedido.checkout} costoEnvio={pedido.costoEnvio} />
+      {pedido.tipo === "delivery" && (
+        <div className="ops-order-total text-xs">
+          <span>Envío</span>
+          <span>
+            {envioPendiente(pedido) ? "A confirmar" : formatPrecio(pedido.costoEnvio ?? 0)}
+          </span>
+        </div>
+      )}
       <div className="ops-order-total">
-        <span>Total de productos</span>
+        <span>{envioPendiente(pedido) ? "Total de productos" : "Total"}</span>
         <span>
-          {formatPrecio(pedido.items.reduce((sum, item) => sum + item.cantidad * item.precio, 0))}
+          {formatPrecio(
+            envioPendiente(pedido) ? totalProductos(pedido.items) : totalConEnvio(pedido),
+          )}
         </span>
       </div>
 

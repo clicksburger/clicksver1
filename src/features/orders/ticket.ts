@@ -1,4 +1,5 @@
 import type { Pedido } from "@/types/domain";
+import { envioPendiente } from "@/features/envios/tarifas";
 
 export function ticketSummary(pedido: Pedido) {
   const productsTotal = pedido.items.reduce(
@@ -12,8 +13,13 @@ export function ticketSummary(pedido: Pedido) {
       timeStyle: "short",
       hourCycle: "h23",
     }).format(new Date(value));
+  const envio = pedido.costoEnvio;
   return {
     productsTotal,
+    envio,
+    envioPendiente: envioPendiente(pedido),
+    total: productsTotal + (envio ?? 0),
+    envioInfo: pedido.checkout?.envio,
     units: pedido.items.reduce((count, item) => count + item.cantidad, 0),
     created: date(pedido.creadoEn),
     confirmed: pedido.horaConfirmado ? date(pedido.horaConfirmado) : null,

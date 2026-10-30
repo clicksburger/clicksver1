@@ -1,6 +1,7 @@
 import type { Database } from "@/types/db.types";
 import type { Tenant } from "@/types/domain";
 import { horariosFromJson } from "./horarios";
+import { envioConfigFromJson } from "@/features/envios/tarifas";
 
 type TenantRow = Database["public"]["Tables"]["tenants"]["Row"];
 
@@ -17,5 +18,6 @@ export function mapTenant(row: TenantRow): Tenant {
     logoUrl: row.logo_url,
     activo: row.activo,
     horarios: row.horarios == null ? null : horariosFromJson(row.horarios),
+    envio: envioConfigFromJson(row.envio_config),
   };
 }

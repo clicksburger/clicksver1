@@ -12,7 +12,44 @@ export interface Tenant {
   logoUrl: string | null;
   activo: boolean;
   horarios: HorarioDia[] | null;
+  envio: EnvioConfig | null;
 }
+
+/** Tramo de precio: se cobra `costo` si la distancia es <= `hastaKm`. */
+export interface TramoEnvio {
+  hastaKm: number;
+  costo: number;
+}
+
+/** Configuración de envío del local. Más allá del último tramo, el envío queda a confirmar. */
+export interface EnvioConfig {
+  direccion: string;
+  lat: number | null;
+  lng: number | null;
+  tramos: TramoEnvio[];
+}
+
+export type MotivoEnvioAConfirmar = "fuera_de_rango" | "no_encontrada" | "no_disponible";
+
+/** Resultado de calcular el envío de una dirección (lo decide siempre el servidor). */
+export type CotizacionEnvio =
+  | {
+      estado: "calculado";
+      costo: number;
+      km: number;
+      direccion: string;
+      lat: number;
+      lng: number;
+    }
+  | {
+      estado: "a_confirmar";
+      motivo: MotivoEnvioAConfirmar;
+      costo: null;
+      km: number | null;
+      direccion: string | null;
+      lat: number | null;
+      lng: number | null;
+    };
 
 export interface HorarioDia {
   dia: number; // 0=Domingo .. 6=Sábado
@@ -70,6 +107,8 @@ export interface CheckoutDetails {
   referencia: string | null;
   pago: "efectivo" | "transferencia";
   requestHash: string;
+  /** Solo delivery (pedidos nuevos): cómo se calculó el envío al confirmar. */
+  envio?: CotizacionEnvio;
 }
 
 export interface Pedido {
@@ -84,6 +123,8 @@ export interface Pedido {
   horaConfirmado: string | null;
   horaEntregado: string | null;
   creadoEn: string;
+  /** null = no aplica o envío a confirmar. */
+  costoEnvio: number | null;
   checkout?: CheckoutDetails;
 }
 

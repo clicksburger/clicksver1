@@ -67,11 +67,17 @@ export function useOrders(tenantId: string) {
 
   const editar = (
     p: Pedido,
-    patch: { nombre?: string | null; tipo?: TipoPedido; items?: PedidoItem[] },
+    patch: {
+      nombre?: string | null;
+      tipo?: TipoPedido;
+      items?: PedidoItem[];
+      costoEnvio?: number | null;
+    },
   ) =>
     updatePedido(p.id, {
       ...(patch.nombre !== undefined ? { nombre: patch.nombre } : {}),
       ...(patch.tipo !== undefined ? { tipo: patch.tipo } : {}),
+      ...(patch.costoEnvio !== undefined ? { costo_envio: patch.costoEnvio } : {}),
       ...(patch.items !== undefined
         ? { items: attachCheckout(patch.items, p.checkout) as unknown as Json }
         : {}),

@@ -22,7 +22,10 @@ function load(file, overrides = {}) {
   });
   return exports;
 }
-const checkout = load("src/features/orders/checkout.ts");
+const tarifas = load("src/features/envios/tarifas.ts");
+const checkout = load("src/features/orders/checkout.ts", { "@/features/envios/tarifas": tarifas });
+// El envío se simula: por defecto "a confirmar" (sin clave de Google).
+let cotizacionEnvio = tarifas.aConfirmar("no_disponible");
 const horarios = load("src/features/tenants/horarios.ts");
 const productId = randomUUID(),
   dipId = randomUUID(),
@@ -158,6 +161,8 @@ const route = load("src/app/api/checkout/route.ts", {
   "@/features/menu/mappers": { mapMenu: () => menu },
   "@/features/tenants/mappers": { mapTenant: (tenant) => tenant },
   "@/features/tenants/horarios": horarios,
+  "@/features/envios/tarifas": tarifas,
+  "@/features/envios/cotizar.server": { cotizarEnvio: async () => cotizacionEnvio },
 });
 const request = (value, origin = "http://localhost:3000") =>
   new Request("http://localhost:3000/api/checkout", {
@@ -178,7 +183,7 @@ assert.ok(
   message.includes("Sin sal") &&
     message.includes("Calle de prueba 123") &&
     message.includes("pendiente") &&
-    message.includes("envío a confirmar"),
+    message.includes("A CONFIRMAR"),
 );
 assert.equal(checkout.readCheckout(rows[0].items).telefono, "3515550100");
 assert.equal((await route.POST(request({ ...body, nombre: "Otro cliente" }))).status, 409);
@@ -190,9 +195,41 @@ assert.equal(
 );
 assert.equal((await route.POST(request({ ...body, requestId: randomUUID(), expectedTotal: 1 }))).status, 409, "Pide revisar la carta si cambió el total");
 assert.equal(rows.length, 1, "No registra un pedido con un total no aceptado");
+// Envío calculado por distancia: se suma al total y se guarda en el pedido.
+cotizacionEnvio = {
+  estado: "calculado",
+  costo: 1500,
+  km: 1.8,
+  direccion: "Calle de prueba 123, Córdoba",
+  lat: -31.39,
+  lng: -64.21,
+};
+const conEnvio = { ...body, requestId: randomUUID(), expectedEnvio: 1500 };
+const envioResponse = await route.POST(request(conEnvio));
+assert.equal(envioResponse.status, 200);
+const envioReceipt = await envioResponse.json();
+assert.equal(envioReceipt.total, 9000, "Productos 7500 + envío 1500");
+assert.equal(envioReceipt.costoEnvio, 1500);
+assert.equal(rows.at(-1).costo_envio, 1500);
+assert.equal(checkout.readCheckout(rows.at(-1).items).envio.km, 1.8);
+assert.ok(
+  new URL(envioReceipt.whatsappUrl).searchParams.get("text").includes("Total a pagar: $ 9.000") ||
+    new URL(envioReceipt.whatsappUrl).searchParams.get("text").includes("Total a pagar: $\u00a09.000"),
+);
+// Reintento del mismo pedido: devuelve el mismo total con envío.
+assert.equal((await (await route.POST(request(conEnvio))).json()).total, 9000);
+// Si el cliente vio otro costo de envío, no se guarda y se le devuelve el nuevo.
+const desactualizado = await route.POST(
+  request({ ...body, requestId: randomUUID(), expectedEnvio: 1000 }),
+);
+assert.equal(desactualizado.status, 409);
+assert.equal((await desactualizado.json()).envio.costo, 1500);
+const filasConEnvio = rows.length;
+cotizacionEnvio = tarifas.aConfirmar("no_disponible");
+assert.equal(rows.length, filasConEnvio);
 const other = { ...body, requestId: randomUUID(), tipo: "takeaway", direccion: "" };
 assert.equal((await route.POST(request(other))).status, 200);
-assert.equal(rows.length, 2);
+assert.equal(rows.length, filasConEnvio + 1);
 closed = true;
 assert.equal((await route.POST(request({ ...body, requestId: randomUUID() }))).status, 409);
 assert.equal(
@@ -200,7 +237,7 @@ assert.equal(
   200,
   "Recupera pedidos existentes aun con el local cerrado",
 );
-assert.equal(rows.length, 2);
+assert.equal(rows.length, filasConEnvio + 1);
 const nights = Array.from({ length: 7 }, (_, dia) => ({
   dia,
   abierto: true,

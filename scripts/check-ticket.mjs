@@ -23,7 +23,8 @@ const load = (file, overrides = {}) => {
   });
   return exports;
 };
-const helpers = load("src/features/orders/ticket.ts");
+const tarifas = load("src/features/envios/tarifas.ts");
+const helpers = load("src/features/orders/ticket.ts", { "@/features/envios/tarifas": tarifas });
 const base = {
   num: 99,
   tipo: "delivery",
@@ -61,6 +62,7 @@ const { Ticket } = load("src/features/orders/components/Ticket.tsx", {
   "@/lib/format": { formatPrecio: (n) => `$${n}` },
   "@/constants/order-states": { ESTADO_LABEL: { listo: "Listo" } },
   "../ticket": helpers,
+  "@/features/envios/tarifas": tarifas,
 });
 const React = require("react");
 const { renderToStaticMarkup } = require("react-dom/server");

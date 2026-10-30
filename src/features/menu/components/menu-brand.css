@@ -743,15 +743,19 @@ html:has(.clicks-menu) {
 .cm-detail-options label input {
   accent-color: #ffd21c;
 }
-.cm-detail-submit {
+.cm-detail-footer {
+  /* Hijo directo del diálogo (el contenedor con scroll): queda fijo al pie. */
   position: sticky;
-  bottom: -22px;
-  margin-top: 5px;
+  bottom: 0;
+  z-index: 1;
+  padding: 14px 22px 18px;
+  background: #1c2a31;
+  border-top: 1px solid #3a4b53;
+}
+.cm-detail-submit {
   background: #ffd21c !important;
   color: #131e24 !important;
-  box-shadow: 0 10px 0 15px #1c2a31;
-  border: 1px solid #fff8df;
-  border-color: #ffd21c;
+  border: 1px solid #ffd21c;
 }
 .cm-detail-submit:hover:enabled {
   background: #fff8df !important;
@@ -1077,11 +1081,8 @@ html:has(.clicks-menu) {
     height: 210px;
     margin: -18px -18px 20px;
   }
-  .cm-detail-submit {
-    bottom: -18px;
-    background: #ffd21c;
-    color: #131e24;
-    border-color: #ffd21c;
+  .cm-detail-footer {
+    padding: 12px 18px calc(14px + env(safe-area-inset-bottom));
   }
   .cm-checkout {
     border-radius: 18px;

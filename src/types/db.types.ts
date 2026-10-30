@@ -247,6 +247,7 @@ export type Database = {
       }
       pedidos: {
         Row: {
+          costo_envio: number | null
           creado_en: string
           demora: number | null
           estado: string
@@ -260,6 +261,7 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          costo_envio?: number | null
           creado_en?: string
           demora?: number | null
           estado?: string
@@ -273,6 +275,7 @@ export type Database = {
           tipo?: string
         }
         Update: {
+          costo_envio?: number | null
           creado_en?: string
           demora?: number | null
           estado?: string
@@ -320,6 +323,7 @@ export type Database = {
           color_surface: string
           color_texto: string
           creado_en: string
+          envio_config: Json | null
           horarios: Json | null
           id: string
           logo_url: string | null
@@ -335,6 +339,7 @@ export type Database = {
           color_surface?: string
           color_texto?: string
           creado_en?: string
+          envio_config?: Json | null
           horarios?: Json | null
           id?: string
           logo_url?: string | null
@@ -350,6 +355,7 @@ export type Database = {
           color_surface?: string
           color_texto?: string
           creado_en?: string
+          envio_config?: Json | null
           horarios?: Json | null
           id?: string
           logo_url?: string | null
@@ -381,6 +387,7 @@ export type Database = {
         Returns: {
           total: number
           cantidad: number
+          envios: number
         }[]
       }
       cerrar_caja: {

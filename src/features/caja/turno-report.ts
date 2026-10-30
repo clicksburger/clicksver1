@@ -1,4 +1,5 @@
 import type { Pedido } from "@/types/domain";
+import { envioDe, totalConEnvio } from "@/features/envios/tarifas";
 
 /**
  * Reporte de un turno de caja en CSV para Excel (separador ";" y BOM UTF-8,
@@ -32,8 +33,8 @@ const fecha = (iso: string | null) =>
 const TIPO: Record<string, string> = { delivery: "Delivery", takeaway: "Retiro", salon: "Salón" };
 const PAGO: Record<string, string> = { efectivo: "Efectivo", transferencia: "Transferencia" };
 
-export const totalPedido = (p: Pedido) =>
-  p.items.reduce((sum, it) => sum + Number(it.precio) * Number(it.cantidad), 0);
+/** Productos + envío: mismo criterio que caja_ventas en la base. */
+export const totalPedido = (p: Pedido) => totalConEnvio(p);
 
 /** Momento que cuenta para las ventas: la entrega (igual que caja_ventas en la base). */
 export const momentoVenta = (p: Pedido) => p.horaEntregado ?? p.creadoEn;
@@ -61,6 +62,7 @@ function cell(value: string | number | null | undefined) {
 
 export function turnoCsv(turno: TurnoResumen, entregados: Pedido[]) {
   const ventas = entregados.reduce((s, p) => s + totalPedido(p), 0);
+  const envios = entregados.reduce((s, p) => s + envioDe(p), 0);
   const porPago = new Map<string, { pedidos: number; total: number }>();
   const productos = new Map<string, { nombre: string; unidades: number; total: number }>();
   for (const p of entregados) {
@@ -84,6 +86,8 @@ export function turnoCsv(turno: TurnoResumen, entregados: Pedido[]) {
     ["Usuario", turno.abierto_por_email ?? ""],
     ["Fondo inicial", Number(turno.monto_inicial)],
     ["Ventas (pedidos entregados)", ventas],
+    ["  · Productos", ventas - envios],
+    ["  · Envíos", envios],
     ["Pedidos entregados", entregados.length],
     ["Esperado en caja", Number(turno.monto_inicial) + ventas],
     ["Contado", turno.monto_final == null ? "" : Number(turno.monto_final)],
@@ -108,6 +112,7 @@ export function turnoCsv(turno: TurnoResumen, entregados: Pedido[]) {
       "Modalidad",
       "Pago",
       "Productos",
+      "Envío ARS",
       "Total ARS",
     ],
     ...entregados.map((p) => [
@@ -124,6 +129,7 @@ export function turnoCsv(turno: TurnoResumen, entregados: Pedido[]) {
             `${it.cantidad} × ${it.nombre}${it.variante ? ` (${it.variante})` : ""}${it.obs ? ` [${it.obs}]` : ""}`,
         )
         .join(" | "),
+      p.tipo === "delivery" && p.costoEnvio == null ? "A confirmar" : envioDe(p),
       totalPedido(p),
     ]),
   ];

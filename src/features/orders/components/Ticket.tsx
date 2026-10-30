@@ -5,6 +5,7 @@ import { Printer, X } from "lucide-react";
 import { formatPrecio } from "@/lib/format";
 import { ESTADO_LABEL } from "@/constants/order-states";
 import { ticketSummary } from "../ticket";
+import { formatKm, mapsUrl } from "@/features/envios/tarifas";
 import type { Pedido } from "@/types/domain";
 import "./ticket.css";
 
@@ -142,11 +143,28 @@ export function Ticket({
           <p className="ticket-small">
             {summary.units} unidades · {pedido.items.length} renglones
           </p>
-          {summary.delivery && (
-            <p className="ticket-warning">
-              Envío a confirmar. No está incluido en el total de productos.
-            </p>
-          )}
+          {summary.delivery &&
+            (summary.envioPendiente ? (
+              <p className="ticket-warning">
+                Envío a confirmar con el cliente. No está incluido en el total.
+              </p>
+            ) : (
+              <>
+                <div className="ticket-total">
+                  <span>
+                    Envío
+                    {summary.envioInfo?.estado === "calculado"
+                      ? ` (${formatKm(summary.envioInfo.km)})`
+                      : ""}
+                  </span>
+                  <span>{formatPrecio(summary.envio ?? 0)}</span>
+                </div>
+                <div className="ticket-total">
+                  <span>TOTAL A COBRAR</span>
+                  <span>{formatPrecio(summary.total)}</span>
+                </div>
+              </>
+            ))}
           <p>
             <strong>Forma de pago:</strong>{" "}
             {pedido.checkout
@@ -162,8 +180,17 @@ export function Ticket({
         {summary.delivery && (
           <section className="ticket-section" aria-label="Completar para reparto">
             <h2>COMPLETAR EN CAJA ANTES DE SALIR</h2>
-            <p>Envío acordado: $ __________________</p>
-            <p>Total a cobrar: $ __________________</p>
+            {summary.envioPendiente && (
+              <>
+                <p>Envío acordado: $ __________________</p>
+                <p>Total a cobrar: $ __________________</p>
+              </>
+            )}
+            {summary.envioInfo?.lat != null && summary.envioInfo.lng != null && (
+              <p className="ticket-small">
+                Mapa: {mapsUrl(summary.envioInfo.lat, summary.envioInfo.lng)}
+              </p>
+            )}
             <p>Repartidor/a: _____________________</p>
           </section>
         )}

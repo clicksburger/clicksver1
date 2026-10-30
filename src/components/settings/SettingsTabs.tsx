@@ -4,13 +4,14 @@ import { useState } from "react";
 import { Tabs } from "@/components/ui";
 import { BrandingForm } from "@/features/tenants/components/BrandingForm";
 import { HorariosForm } from "@/features/tenants/components/HorariosForm";
+import { EnviosForm } from "@/features/envios/components/EnviosForm";
 import { MenuManager } from "@/features/menu/components/MenuManager";
 import { CategoriesManager } from "@/features/menu/components/CategoriesManager";
 import { PasswordForm } from "@/features/auth/components/PasswordForm";
 import type { Tenant } from "@/types/domain";
 import { ClicksLogo } from "@/components/ui/ClicksLogo";
 
-type Tab = "branding" | "horarios" | "menu" | "categorias" | "password";
+type Tab = "branding" | "horarios" | "envios" | "menu" | "categorias" | "password";
 
 export function SettingsTabs({ tenant }: { tenant: Tenant }) {
   const [tab, setTab] = useState<Tab>("branding");
@@ -25,6 +26,7 @@ export function SettingsTabs({ tenant }: { tenant: Tenant }) {
         items={[
           { key: "branding", label: "Identidad" },
           { key: "horarios", label: "Horarios" },
+          { key: "envios", label: "Envíos" },
           { key: "menu", label: "Menú" },
           { key: "categorias", label: "Categorías" },
           { key: "password", label: "Contraseña" },
@@ -62,6 +64,7 @@ export function SettingsTabs({ tenant }: { tenant: Tenant }) {
           <BrandingForm tenant={tenant} />
         ))}
       {tab === "horarios" && <HorariosForm tenant={tenant} />}
+      {tab === "envios" && <EnviosForm tenant={tenant} />}
       {tab === "menu" && <MenuManager tenantId={tenant.id} />}
       {tab === "categorias" && <CategoriesManager tenantId={tenant.id} />}
       {tab === "password" && <PasswordForm />}

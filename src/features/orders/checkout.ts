@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CheckoutDetails, MenuItem, PedidoItem } from "@/types/domain";
+import { MOTIVO_A_CONFIRMAR, formatKm, mapsUrl, totalProductos } from "@/features/envios/tarifas";
 
 const phone = z
   .string()
@@ -10,6 +11,8 @@ const phone = z
 export const checkoutSchema = z
   .object({
     expectedTotal: z.number().finite().min(0),
+    /** Envío que vio el cliente (null = a confirmar). El servidor lo recalcula y compara. */
+    expectedEnvio: z.number().finite().min(0).nullable().optional(),
     requestId: z.string().uuid(),
     nombre: z.string().trim().min(3, "Ingresá tu nombre y apellido.").max(100),
     telefono: phone,
@@ -100,6 +103,23 @@ export function whatsappMessage(
       currency: "ARS",
       maximumFractionDigits: 0,
     }).format(amount);
+  const productos = totalProductos(items);
+  const envio = tipo === "delivery" ? checkout.envio : undefined;
+  const envioLineas: string[] = [];
+  if (tipo === "delivery") {
+    if (envio?.estado === "calculado")
+      envioLineas.push(
+        `Total de productos: ${money(productos)}`,
+        `Envío (${formatKm(envio.km)}): ${money(envio.costo)}`,
+        `*Total a pagar: ${money(productos + envio.costo)}*`,
+      );
+    else
+      envioLineas.push(
+        `Total de productos: ${money(productos)}`,
+        `Envío: *A CONFIRMAR*${envio?.estado === "a_confirmar" ? ` (${MOTIVO_A_CONFIRMAR[envio.motivo].replace(/\.$/, "").toLowerCase()})` : ""}.`,
+        "Por favor, confirmame el costo del envío por acá antes de preparar el pedido.",
+      );
+  } else envioLineas.push(`*Total a pagar: ${money(productos)}*`);
   return [
     `Hola Clicks! Pedido #${num}`,
     `Nombre: ${nombre}`,
@@ -109,6 +129,9 @@ export function whatsappMessage(
       ? [
           `Dirección: ${checkout.direccion}`,
           ...(checkout.referencia ? [`Referencia: ${checkout.referencia}`] : []),
+          ...(envio?.lat != null && envio.lng != null
+            ? [`Ubicación: ${mapsUrl(envio.lat, envio.lng)}`]
+            : []),
         ]
       : []),
     `Forma de pago: ${checkout.pago === "efectivo" ? "Efectivo" : "Transferencia"} (pendiente)`,
@@ -118,10 +141,7 @@ export function whatsappMessage(
         `${item.cantidad} × ${item.nombre}${item.variante ? ` (${item.variante})` : ""} — ${money(item.precio * item.cantidad)}${item.obs ? `\n  Observación: ${item.obs}` : ""}`,
     ),
     "",
-    `Total de productos: ${money(items.reduce((sum, item) => sum + item.precio * item.cantidad, 0))}`,
-    ...(tipo === "delivery"
-      ? ["Costo de envío a confirmar según dirección; no incluido en el total."]
-      : []),
+    ...envioLineas,
     "El pedido ya está registrado en el sistema. Quedo a la espera de confirmación del local.",
   ].join("\n");
 }

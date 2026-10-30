@@ -18,6 +18,7 @@ export function mapPedido(row: PedidoRow): Pedido {
     horaConfirmado: row.hora_confirmado,
     horaEntregado: row.hora_entregado,
     creadoEn: row.creado_en,
+    costoEnvio: row.costo_envio == null ? null : Number(row.costo_envio),
     checkout: readCheckout(Array.isArray(row.items) ? (row.items as unknown as PedidoItem[]) : []),
   };
 }

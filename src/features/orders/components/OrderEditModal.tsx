@@ -20,6 +20,7 @@ interface SavePatch {
   nombre: string | null;
   tipo: TipoPedido;
   items: PedidoItem[];
+  costoEnvio: number | null;
 }
 
 function EditForm({
@@ -34,6 +35,8 @@ function EditForm({
   const [nombre, setNombre] = useState(pedido.nombre ?? "");
   const [tipo, setTipo] = useState<TipoPedido>(pedido.tipo);
   const [items, setItems] = useState<PedidoItem[]>(pedido.items.map((it) => ({ ...it })));
+  // Vacío = envío a confirmar. Caja lo completa cuando lo acuerda con el cliente.
+  const [envio, setEnvio] = useState(pedido.costoEnvio == null ? "" : String(pedido.costoEnvio));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +59,11 @@ function EditForm({
     };
   }, [pedido.tenantId]);
 
-  const total = items.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
+  const envioNumero = envio.trim() === "" ? null : Number(envio.replace(",", "."));
+  const envioValido = envioNumero == null || (Number.isFinite(envioNumero) && envioNumero >= 0);
+  const total =
+    items.reduce((acc, it) => acc + it.precio * it.cantidad, 0) +
+    (tipo === "delivery" && envioValido ? (envioNumero ?? 0) : 0);
 
   const setQty = (i: number, delta: number) =>
     setItems((arr) =>
@@ -97,10 +104,19 @@ function EditForm({
       setError("El pedido debe conservar al menos un producto.");
       return;
     }
+    if (tipo === "delivery" && !envioValido) {
+      setError("Revisá el costo de envío.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      await onSave({ nombre: nombre.trim() || null, tipo, items });
+      await onSave({
+        nombre: nombre.trim() || null,
+        tipo,
+        items,
+        costoEnvio: tipo === "delivery" ? envioNumero : null,
+      });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar");
@@ -240,6 +256,18 @@ function EditForm({
           )}
         </div>
       </div>
+
+      {tipo === "delivery" && (
+        <FormField label="Costo de envío (vacío = a confirmar)" htmlFor="edit-envio">
+          <Input
+            id="edit-envio"
+            inputMode="decimal"
+            value={envio}
+            placeholder="A confirmar"
+            onChange={(e) => setEnvio(e.target.value)}
+          />
+        </FormField>
+      )}
 
       <div className="flex items-center justify-between border-t border-border pt-3">
         <span className="text-muted">Total</span>

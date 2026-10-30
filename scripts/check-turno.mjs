@@ -3,6 +3,21 @@ import fs from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 
+// Módulo de envíos (lo usan los totales): se transpila y se inyecta como dependencia.
+const tarifas = (() => {
+  const out = ts.transpileModule(
+    fs.readFileSync(new URL("../src/features/envios/tarifas.ts", import.meta.url), "utf8"),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  const exports = {};
+  vm.runInNewContext(out, { exports, Intl, Math, Number });
+  return exports;
+})();
+const requireTarifas = (name) => {
+  if (name === "@/features/envios/tarifas") return tarifas;
+  throw new Error(`Dependencia no simulada: ${name}`);
+};
+
 // Reporte del turno de caja: qué ventas entran y cómo queda el Excel (CSV).
 const source = fs.readFileSync(
   new URL("../src/features/caja/turno-report.ts", import.meta.url),
@@ -12,7 +27,7 @@ const { outputText } = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 });
 const exported = {};
-vm.runInThisContext(`(function (exports) {${outputText}\n})`)(exported);
+vm.runInThisContext(`(function (exports, require) {${outputText}\n})`)(exported, requireTarifas);
 const { ventasDelTurno, turnoCsv, turnoArchivo, totalPedido } = exported;
 
 const item = (nombre, precio, cantidad, extra = {}) => ({
