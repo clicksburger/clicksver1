@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatPrecio } from "@/lib/format";
 import { useCartStore } from "../store/cart.store";
+import { textoVigencia } from "../promos";
 import type { MenuItem } from "@/types/domain";
 
 type Layout = "overlay" | "compact";
@@ -23,6 +24,11 @@ function useJustAdded() {
   }, []);
   return [added, flash] as const;
 }
+
+/** Marca la foto como cargada: el contenedor `.sk-img` deja de brillar. */
+const marcarCargada = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.dataset.loaded = "1";
+};
 
 /**
  * Solo pasan por el optimizador de Next las rutas propias y Storage de Supabase
@@ -54,6 +60,8 @@ export const MenuItemCard = memo(function MenuItemCard({
   const formId = useId();
 
   const hasVariants = item.variantes.length > 0;
+  /** Promo con fecha (ej. Cryspy negra): tarjeta ancha y resaltada dentro de su categoría. */
+  const isPromo = item.destacado && !!item.vigenteHasta;
   const isDip = item.nombre.trim().toUpperCase() === "DIP DE SALSAS";
   const chosen = item.variantes.filter((variant) => selected.includes(variant.id));
   const selectedPrice = isDip
@@ -111,6 +119,7 @@ export const MenuItemCard = memo(function MenuItemCard({
         sizes={sizes}
         unoptimized={!optimizable(item.imagenUrl)}
         className={className}
+        onLoad={marcarCargada}
       />
     ) : (
       <div className={cn("flex items-center justify-center bg-surface2 text-muted", className)}>
@@ -131,13 +140,14 @@ export const MenuItemCard = memo(function MenuItemCard({
     >
       <div className="cm-product-detail">
         {item.imagenUrl && (
-          <div className="cm-detail-photo">
+          <div className="cm-detail-photo sk-img">
             <Image
               src={item.imagenUrl}
               alt={item.nombre}
               fill
               sizes="(max-width: 700px) 100vw, 512px"
               unoptimized={!optimizable(item.imagenUrl)}
+              onLoad={marcarCargada}
             />
           </div>
         )}
@@ -228,16 +238,27 @@ export const MenuItemCard = memo(function MenuItemCard({
   if (layout === "compact") {
     return (
       <>
-        <article className={`cm-product-card ${added ? "cm-just-added" : ""}`}>
+        <article
+          className={`cm-product-card ${isPromo ? "is-promo" : ""} ${added ? "cm-just-added" : ""}`}
+        >
           <button
             type="button"
-            className="cm-card-image"
+            className="cm-card-image sk-img"
             onClick={onPlus}
             aria-label={`Ver foto y detalle de ${item.nombre}`}
           >
-            {img("cm-card-photo")}
+            {isPromo
+              ? img("cm-card-photo", "(max-width: 700px) 140px, 240px")
+              : img("cm-card-photo")}
           </button>
           <div className="cm-card-body">
+            {isPromo && (
+              <span className="cm-promo-tag">
+                <i aria-hidden="true" />
+                <span className="cm-promo-tag-label">Promo · </span>
+                {textoVigencia(item.vigenteHasta)}
+              </span>
+            )}
             <div className="cm-card-heading">
               <h3>
                 <button type="button" onClick={onPlus}>
@@ -248,7 +269,9 @@ export const MenuItemCard = memo(function MenuItemCard({
             </div>
             {item.descripcion && <p className="cm-card-description">{item.descripcion}</p>}
             <div className="cm-card-bottom">
-              {item.destacado && <span className="cm-card-featured">Destacada de Clicks</span>}
+              {item.destacado && !isPromo && (
+                <span className="cm-card-featured">Destacada de Clicks</span>
+              )}
               {plusBtn("cm-card-add")}
             </div>
           </div>

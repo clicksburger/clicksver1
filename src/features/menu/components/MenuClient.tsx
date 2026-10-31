@@ -9,7 +9,7 @@ import { groupByCategoria } from "../mappers";
 import { MenuItemCard } from "./MenuItemCard";
 import { CartPanel } from "./CartPanel";
 import { PromoCarousel } from "./PromoCarousel";
-import { promoSlides } from "../promos";
+import { promoSlides, unirPromosConHamburguesas } from "../promos";
 import { Sheet } from "@/components/ui";
 import { cartCount, cartTotal, useCartStore } from "../store/cart.store";
 import { estaAbierto, DIAS } from "@/features/tenants/horarios";
@@ -31,7 +31,7 @@ function mascotaDe(categoria: string) {
 }
 
 export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[] }) {
-  const groups = useMemo(() => groupByCategoria(items), [items]);
+  const groups = useMemo(() => unirPromosConHamburguesas(groupByCategoria(items)), [items]);
   const slides = useMemo(() => promoSlides(items), [items]);
   const addToCart = useCartStore((state) => state.add);
   /** "Elegí tu burger" apunta a Hamburguesas aunque Promociones vaya primero. */
@@ -161,13 +161,9 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
           </div>
         </div>
       </section>
-      <div className="cm-brand-strip">
-        <span>Burgers con nombre propio.</span>
-        <span>Retiro y delivery.</span>
-      </div>
+      <div className="cm-brand-strip" aria-hidden="true" />
       <PromoCarousel
         slides={slides}
-        variant="menu"
         onAdd={(item) =>
           addToCart({
             itemId: item.id,

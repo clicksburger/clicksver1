@@ -26,6 +26,7 @@ const tarifas = load("src/features/envios/tarifas.ts");
 const promos = load("src/features/menu/promos.ts");
 const checkout = load("src/features/orders/checkout.ts", {
   "@/features/envios/tarifas": tarifas,
+  "@/constants/business": load("src/constants/business.ts"),
   "@/features/menu/promos": promos,
 });
 // El envío se simula: por defecto "a confirmar" (sin clave de Google).
@@ -126,6 +127,20 @@ const slides = promos.promoSlides([
 ]);
 assert.equal(slides.length, 2); // solo la vigente, con sus dos piezas
 assert.equal(slides[1].src, "/img/promo-cryspy-doble-2.jpg");
+// La pestaña "Promociones" se muestra dentro de Hamburguesas, primera.
+const unidas = promos.unirPromosConHamburguesas([
+  { categoria: "Promociones", items: [{ id: "promo" }] },
+  { categoria: "Hamburguesas", items: [{ id: "cheese" }] },
+  { categoria: "Extras", items: [{ id: "papas" }] },
+]);
+// JSON: los arrays vienen de otro contexto de vm y no comparten prototipo.
+assert.equal(
+  JSON.stringify(unidas.map((group) => [group.categoria, group.items.map((item) => item.id)])),
+  JSON.stringify([
+    ["Hamburguesas", ["promo", "cheese"]],
+    ["Extras", ["papas"]],
+  ]),
+);
 
 const rows = [];
 let closed = false;

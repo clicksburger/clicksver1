@@ -1,4 +1,4 @@
-/* Carrusel de promos: carta pública (.pc--menu) y panel de administración (.pc--admin). */
+/* Carrusel de promos de la carta pública. Se anima aunque el sistema pida reducir movimiento (pedido del local). */
 .pc {
   --pc-ink: #fff8df;
   --pc-muted: #c8cdbf;
@@ -13,7 +13,7 @@
   isolation: isolate;
   color: var(--pc-ink);
 }
-.pc--menu {
+.pc {
   max-width: 1420px;
   margin: 0 auto;
   padding: 34px 40px 6px;
@@ -76,13 +76,6 @@
   touch-action: pan-y;
   user-select: none;
 }
-.pc--admin .pc-stage {
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 40px;
-  padding: 24px 30px 34px;
-  border-top: 1px solid var(--pc-line);
-  border-radius: 16px;
-}
 .pc-stage::before {
   content: "";
   position: absolute;
@@ -92,7 +85,9 @@
   background: linear-gradient(90deg, #131e24b3 0%, #131e2459 40%, #131e24e6 100%);
 }
 
-/* Fondo: la pieza activa, desenfocada, tiñe el escenario. */
+/* Fondo: la pieza activa,
+desenfocada,
+tiñe el escenario. */
 .pc-backdrop {
   position: absolute;
   inset: 0;
@@ -176,10 +171,6 @@
   box-shadow:
     0 30px 60px -22px #000e,
     0 0 0 1px #0005;
-}
-.pc--admin .pc-card-face {
-  border-width: 3px;
-  border-radius: 12px;
 }
 .pc-card-img {
   object-fit: cover;
@@ -344,17 +335,11 @@
   overflow-wrap: break-word;
   hyphens: auto;
 }
-.pc--admin .pc-copy h3 {
-  font-size: clamp(24px, 2.4vw, 32px);
-}
 .pc-copy p {
   font-size: 16px;
   line-height: 1.55;
   color: var(--pc-muted);
   max-width: 52ch;
-}
-.pc--admin .pc-copy p {
-  font-size: 14px;
 }
 .pc-price {
   font-family: var(--font-anton), var(--font-lato), sans-serif;
@@ -370,10 +355,6 @@
   text-transform: uppercase;
   vertical-align: 0.55em;
   text-shadow: none;
-}
-.pc--admin .pc-price {
-  font-size: 30px;
-  text-shadow: 0 3px 0 #e8641c;
 }
 .pc-actions {
   display: flex;
@@ -399,10 +380,6 @@
     transform 0.15s,
     box-shadow 0.15s,
     background-color 0.15s;
-}
-.pc--admin .pc-cta {
-  padding: 10px 16px;
-  font-size: 14px;
 }
 .pc-cta:hover {
   background: var(--pc-ink);
@@ -436,7 +413,7 @@
 .pc-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 16px;
   margin-top: 14px;
 }
@@ -479,80 +456,23 @@
 .pc.is-paused .pc-card-img {
   animation-play-state: paused;
 }
-.pc-arrows {
-  display: flex;
-  gap: 8px;
-}
-.pc-arrows button {
-  display: inline-grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1px solid var(--pc-line);
-  background: var(--pc-paper);
-  color: var(--pc-ink);
-  cursor: pointer;
-}
-.pc-arrows button:last-child {
-  background: var(--pc-yellow);
-  border-color: var(--pc-yellow);
-  color: var(--pc-coal);
-}
-.pc-arrows button:hover {
-  filter: brightness(1.12);
-}
-
-/* ── Panel sin promos ──────────────────────────────────────── */
-.pc-empty {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 20px;
-  border: 1px dashed #3a4b53;
-  border-radius: 16px;
-  color: #fff8df;
-}
-.pc-empty svg {
-  color: #ffd21c;
-  flex-shrink: 0;
-}
-.pc-empty div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-}
-.pc-empty span {
-  font-size: 13px;
-  color: #b9c2c1;
-}
-.pc-empty a {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 800;
-  color: #ffd21c;
-  white-space: nowrap;
-}
 
 /* ── Responsive ────────────────────────────────────────────── */
 @media (max-width: 1199px) {
-  .pc--menu {
+  .pc {
     padding: 28px 24px 4px;
   }
 }
 /* Celular: un solo banner completo en pantalla, pieza a la izquierda y texto a la derecha. */
 @media (max-width: 700px) {
-  .pc--menu {
+  .pc {
     padding: 18px 12px 2px;
   }
   .pc-marquee {
     font-size: 13px;
     padding: 7px 0;
   }
-  .pc-stage,
-  .pc--admin .pc-stage {
+  .pc-stage {
     grid-template-columns: 40% minmax(0, 1fr);
     gap: 16px;
     padding: 22px 14px 30px;
@@ -587,12 +507,10 @@
   .pc-chip-label {
     display: none;
   }
-  .pc-copy h3,
-  .pc--admin .pc-copy h3 {
+  .pc-copy h3 {
     font-size: clamp(18px, 5.6vw, 30px);
   }
-  .pc-copy p,
-  .pc--admin .pc-copy p {
+  .pc-copy p {
     font-size: 12.5px;
     line-height: 1.45;
     display: -webkit-box;
@@ -600,8 +518,7 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .pc-price,
-  .pc--admin .pc-price {
+  .pc-price {
     font-size: clamp(26px, 8vw, 34px);
     text-shadow: 0 3px 0 #e8641c;
   }
@@ -609,8 +526,7 @@
     width: 100%;
     gap: 10px;
   }
-  .pc-cta,
-  .pc--admin .pc-cta {
+  .pc-cta {
     width: 100%;
     padding: 11px 12px;
     font-size: 13px;
@@ -704,17 +620,5 @@
   }
   100% {
     transform: scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pc *,
-  .pc *::before,
-  .pc *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-  .pc-card[data-pos="back"] {
-    opacity: 0;
   }
 }

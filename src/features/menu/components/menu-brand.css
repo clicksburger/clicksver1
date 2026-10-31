@@ -232,20 +232,10 @@ html:has(.clicks-menu) {
   font-weight: 700;
   transform: rotate(-3deg);
 }
+/* Solo la línea amarilla de la marca, sin texto. */
 .cm-brand-strip {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 90px;
+  height: 8px;
   background: #ffd21c;
-  padding: 11px 25px;
-  color: #131e24;
-  font-size: 12px;
-  font-weight: 900;
-}
-.cm-brand-strip > span + span:before {
-  content: "✳";
-  margin-right: 35px;
 }
 .cm-category-nav {
   position: sticky;
@@ -882,12 +872,6 @@ html:has(.clicks-menu) {
   .cm-hero h1 {
     font-size: 78px;
   }
-  .cm-brand-strip {
-    gap: 35px;
-  }
-  .cm-brand-strip > span + span:before {
-    margin-right: 20px;
-  }
 }
 @media (max-width: 700px) {
   .cm-header-inner {
@@ -958,15 +942,6 @@ html:has(.clicks-menu) {
     bottom: 16px;
     font-size: 10px;
     padding: 6px 12px;
-  }
-  .cm-brand-strip {
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 18px;
-    font-size: 10px;
-  }
-  .cm-brand-strip > span + span:before {
-    display: none;
   }
   .cm-category-inner {
     padding: 13px 14px;
@@ -1103,8 +1078,9 @@ html:has(.clicks-menu) {
     gap: 14px;
   }
 }
+/* El carrusel, la tarjeta de la promo y los skeletons se animan siempre (pedido del local). */
 @media (prefers-reduced-motion: reduce) {
-  .clicks-menu *,
+  .clicks-menu *:not(.pc, .pc *, .is-promo, .is-promo *, .sk, .sk-img),
   .cm-product-dialog *,
   .cm-checkout *,
   .cm-cart-sheet *,
@@ -1118,5 +1094,190 @@ html:has(.clicks-menu) {
   .cm-product-card:hover .cm-card-photo,
   .cm-card-image:hover .cm-card-photo {
     transform: none;
+  }
+}
+
+/* ── Promo con fecha dentro de su categoría (ej. Cryspy negra en Hamburguesas) ── */
+@property --cm-promo-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.cm-product-card.is-promo {
+  grid-column: 1 / -1;
+  position: relative;
+  gap: 22px;
+  padding: 16px 20px 16px 16px;
+  border: 2px solid transparent;
+  background:
+    radial-gradient(90% 140% at 0% 50%, #e8641c2e 0%, transparent 60%) padding-box,
+    linear-gradient(120deg, #22201a 0%, #1c2a31 60%) padding-box,
+    conic-gradient(
+        from var(--cm-promo-angle),
+        #ffd21c,
+        #e8641c 18%,
+        #3a4b53 34%,
+        #3a4b53 66%,
+        #e8641c 82%,
+        #ffd21c
+      )
+      border-box;
+  box-shadow: 0 18px 40px -20px #e8641caa;
+  animation: cm-promo-border 5s linear infinite;
+}
+.cm-product-card.is-promo:hover {
+  background:
+    radial-gradient(90% 140% at 0% 50%, #e8641c40 0%, transparent 60%) padding-box,
+    linear-gradient(120deg, #22201a 0%, #1c2a31 60%) padding-box,
+    conic-gradient(
+        from var(--cm-promo-angle),
+        #ffd21c,
+        #e8641c 18%,
+        #3a4b53 34%,
+        #3a4b53 66%,
+        #e8641c 82%,
+        #ffd21c
+      )
+      border-box;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 24px 46px -18px #e8641ccc;
+}
+.is-promo .cm-card-image {
+  width: 190px;
+  min-height: 230px;
+  border-radius: 14px;
+  border: 3px solid #fff8df;
+  transform: rotate(-2deg);
+  box-shadow: 0 16px 30px -14px #000;
+}
+.is-promo .cm-card-photo {
+  min-height: 230px;
+  object-position: 50% 42%;
+}
+/* Destello que cruza la foto cada tanto. */
+.is-promo .cm-card-image::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, #fff8df55 50%, transparent 60%);
+  transform: translateX(-130%);
+  animation: cm-promo-sheen 4.5s ease-in-out 1s infinite;
+}
+.is-promo .cm-card-body {
+  justify-content: center;
+  gap: 2px;
+}
+.cm-promo-tag {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 9px;
+  border: 1px solid #e8641c99;
+  background: #e8641c24;
+  color: #ffbf8f;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.cm-promo-tag i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e8641c;
+  animation: cm-promo-ping 1.8s ease-out infinite;
+}
+.is-promo .cm-card-heading {
+  flex-direction: column;
+  gap: 6px;
+}
+.is-promo .cm-card-heading h3 {
+  font-family: var(--font-anton), var(--font-lato), sans-serif;
+  font-size: clamp(24px, 2.4vw, 34px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.is-promo .cm-card-price {
+  font-family: var(--font-anton), var(--font-lato), sans-serif;
+  font-size: clamp(26px, 2.6vw, 36px);
+  font-weight: 400;
+  line-height: 1;
+  text-shadow: 0 3px 0 #e8641c;
+}
+.is-promo .cm-card-description {
+  font-size: 13px;
+  -webkit-line-clamp: 3;
+  max-width: 60ch;
+}
+.cm-product-card.is-promo .cm-card-add {
+  flex: 0 0 auto;
+  min-width: 190px;
+  min-height: 42px;
+  font-size: 13px;
+  box-shadow: 0 3px 0 #ba8811;
+}
+@keyframes cm-promo-border {
+  to {
+    --cm-promo-angle: 360deg;
+  }
+}
+@keyframes cm-promo-sheen {
+  0% {
+    transform: translateX(-130%);
+  }
+  35%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+@keyframes cm-promo-ping {
+  0% {
+    box-shadow: 0 0 0 0 #e8641c99;
+  }
+  80%,
+  100% {
+    box-shadow: 0 0 0 8px #e8641c00;
+  }
+}
+@media (max-width: 700px) {
+  .cm-product-card.is-promo {
+    gap: 14px;
+    padding: 13px;
+  }
+  .is-promo .cm-card-image {
+    width: 118px;
+    min-height: 190px;
+  }
+  .is-promo .cm-card-photo {
+    min-height: 190px;
+  }
+  .cm-promo-tag-label {
+    display: none;
+  }
+  .cm-promo-tag {
+    font-size: 9.5px;
+    padding: 4px 8px;
+    margin-bottom: 7px;
+    letter-spacing: 0;
+  }
+  .is-promo .cm-card-heading h3 {
+    font-size: 21px;
+  }
+  .is-promo .cm-card-price {
+    font-size: 24px;
+  }
+  .is-promo .cm-card-description {
+    font-size: 12px;
+  }
+  .cm-product-card.is-promo .cm-card-add {
+    flex: 1;
+    min-width: 0;
   }
 }

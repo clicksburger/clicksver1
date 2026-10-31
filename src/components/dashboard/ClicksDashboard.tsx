@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -16,11 +16,9 @@ import { loadDashboard, loadShiftDashboard } from "@/features/dashboard/dashboar
 import { money, orderTotal, periodStart, summarize } from "@/features/dashboard/summary";
 import { envioDe } from "@/features/envios/tarifas";
 import { ESTADO_LABEL } from "@/constants/order-states";
-import { PromoCarousel } from "@/features/menu/components/PromoCarousel";
-import { fetchMenuAll } from "@/features/menu/services/menu.client";
-import { promoSlides, type PromoSlide } from "@/features/menu/promos";
 import { routes } from "@/constants/routes";
 import type { Tenant } from "@/types/domain";
+import { Sk } from "@/components/ui/Skeleton";
 import "./dashboard.css";
 
 type DashboardData = Awaited<ReturnType<typeof loadDashboard>>;
@@ -38,26 +36,11 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
   const [days, setDays] = useState(0);
   const [revision, setRevision] = useState(0);
   const [data, setData] = useState<DashboardData | null>(null);
+  /** Período al que corresponden los datos en pantalla (se conservan al refrescar). */
+  const [dataDays, setDataDays] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updated, setUpdated] = useState<string | null>(null);
-  const [promos, setPromos] = useState<PromoSlide[] | null>(null);
-  const [promosError, setPromosError] = useState(false);
-
-  // Promos destacadas (incluye vencidas, marcadas como tales). Se recargan con "Actualizar".
-  useEffect(() => {
-    let active = true;
-    fetchMenuAll(tenant.id)
-      .then((items) => {
-        if (!active) return;
-        setPromos(promoSlides(items, { incluirVencidas: true }));
-        setPromosError(false);
-      })
-      .catch(() => active && setPromosError(true));
-    return () => {
-      active = false;
-    };
-  }, [tenant.id, revision]);
 
   useEffect(() => {
     let active = true;
@@ -71,6 +54,7 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
             : await loadDashboard(tenant.id, periodStart(days), new Date().toISOString());
         if (active) {
           setData(result);
+          setDataDays(days);
           setUpdated(new Date().toISOString());
         }
       } catch (cause) {
@@ -81,14 +65,25 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
       }
     }
     void refresh();
-    const timer = setInterval(() => void refresh(), 60000);
+    // Con la pestaña oculta no consulta; al volver, actualiza en el momento.
+    const timer = setInterval(() => {
+      if (!document.hidden) void refresh();
+    }, 60000);
+    const onVisible = () => {
+      if (!document.hidden) void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [tenant.id, days, revision]);
 
-  const summary = summarize(data?.orders ?? []);
+  const summary = useMemo(() => summarize(data?.orders ?? []), [data]);
+  // Skeleton solo sin datos del período elegido: los refrescos mantienen lo que se ve.
+  const current = data && dataDays === days ? data : null;
+  const showSkeleton = !current && (loading || !error);
   function exportSales() {
     // Los textos se entrecomillan y neutralizan para evitar fórmulas al abrir el CSV.
     const cell = (value: string | number) =>
@@ -212,11 +207,10 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
         </div>
       )}
       <div aria-live="polite" aria-busy={loading}>
-        {loading ? (
-          <div className="cd-loading">Cargando datos de Clicks…</div>
+        {showSkeleton ? (
+          <MetricsSkeleton />
         ) : (
-          !error &&
-          data && (
+          current && (
             <>
               <section className="cd-metrics" aria-label="Resumen de ventas">
                 <div className="cd-revenue">
@@ -243,16 +237,16 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
                 </div>
                 <div className="cd-stat">
                   <span>Pedidos en curso</span>
-                  <strong>{data.activeCount}</strong>
+                  <strong>{current.activeCount}</strong>
                   <p>Todos los pendientes del local</p>
                 </div>
               </section>
               <p className="cd-method">
                 {days === 0
-                  ? data.turno
-                    ? data.turno.cerrado_en
-                      ? `Último turno: ${time(data.turno.abierto_en)} a ${time(data.turno.cerrado_en)}. Se reinicia al abrir la caja. `
-                      : `Turno abierto desde ${time(data.turno.abierto_en)}. Se reinicia al abrir la próxima caja. `
+                  ? current.turno
+                    ? current.turno.cerrado_en
+                      ? `Último turno: ${time(current.turno.abierto_en)} a ${time(current.turno.cerrado_en)}. Se reinicia al abrir la caja. `
+                      : `Turno abierto desde ${time(current.turno.abierto_en)}. Se reinicia al abrir la próxima caja. `
                     : "Todavía no hay turnos de caja: se muestra el día de hoy. "
                   : "Período por fecha de creación del pedido, en hora de Buenos Aires. "}
                 Las ventas incluyen solo pedidos entregados; no representan cobros verificados.
@@ -260,46 +254,22 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
 
               <section className="cd-operation" aria-label="Estado del local">
                 <div>
-                  <span className={`cd-dot ${data.shift ? "cd-dot-open" : ""}`} />
-                  <strong>{data.shift ? "Caja abierta" : "Caja cerrada"}</strong>
+                  <span className={`cd-dot ${current.shift ? "cd-dot-open" : ""}`} />
+                  <strong>{current.shift ? "Caja abierta" : "Caja cerrada"}</strong>
                   <span>
-                    {data.shift
-                      ? `Desde ${time(data.shift.abierto_en)}`
+                    {current.shift
+                      ? `Desde ${time(current.shift.abierto_en)}`
                       : "Abrí un turno para empezar a operar"}
                   </span>
                 </div>
                 <Link href={routes.cierre(tenant.slug)}>
-                  {data.shift ? "Ver turno de caja" : "Abrir caja"} <ArrowUpRight size={16} />
+                  {current.shift ? "Ver turno de caja" : "Abrir caja"} <ArrowUpRight size={16} />
                 </Link>
               </section>
             </>
           )
         )}
       </div>
-
-      <section className="cd-promos" aria-labelledby="cd-promos-title">
-        <div className="cd-promos-heading">
-          <div>
-            <h2 id="cd-promos-title">Promos destacadas</h2>
-            <p>Así se ven en la carta. Al vencer dejan de mostrarse y de poder pedirse.</p>
-          </div>
-        </div>
-        {promosError ? (
-          <div className="cd-error" role="alert">
-            No se pudieron cargar las promos.{" "}
-            <button onClick={() => setRevision((value) => value + 1)}>Reintentar</button>
-          </div>
-        ) : promos ? (
-          <PromoCarousel
-            slides={promos}
-            variant="admin"
-            editHref={routes.settings(tenant.slug)}
-            menuHref={routes.menu(tenant.slug)}
-          />
-        ) : (
-          <div className="cd-loading">Cargando promos…</div>
-        )}
-      </section>
 
       <section className="cd-actions" aria-label="Accesos a la operación">
         {actions.map((action) => (
@@ -314,7 +284,8 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
         ))}
       </section>
 
-      {!loading && !error && data && (
+      {showSkeleton && <ColumnsSkeleton />}
+      {current && (
         <div className="cd-columns">
           <section className="cd-panel" id="ventas">
             <div className="cd-section-heading">
@@ -326,7 +297,7 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
                 Ir a pedidos <ArrowUpRight size={16} />
               </Link>
             </div>
-            {data.orders.length ? (
+            {current.orders.length ? (
               <div className="cd-table-scroll">
                 <table>
                   <thead>
@@ -338,7 +309,7 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.orders.slice(0, 8).map((order) => (
+                    {current.orders.slice(0, 8).map((order) => (
                       <tr key={order.id}>
                         <td>
                           <strong>#{order.num}</strong>
@@ -408,7 +379,7 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
             )}
             <div className="cd-menu-summary">
               <span>
-                <strong>{data.menuCount}</strong> productos activos en el menú
+                <strong>{current.menuCount}</strong> productos activos en el menú
               </span>
               <Link href={routes.settings(tenant.slug)}>
                 Editar menú <ArrowUpRight size={15} />
@@ -425,6 +396,78 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
           movimientos de stock.
         </p>
       </footer>
+    </div>
+  );
+}
+
+/** Esqueleto de las métricas y el estado de caja mientras llega el primer dato. */
+function MetricsSkeleton() {
+  return (
+    <div className="cd-skeleton" aria-hidden="true">
+      <span className="sr-only">Cargando datos de Clicks…</span>
+      <section className="cd-metrics">
+        <div className="cd-revenue cd-sk-revenue">
+          <Sk className="cd-sk-line" style={{ width: "48%" }} />
+          <Sk className="cd-sk-number" style={{ width: "62%" }} />
+          <Sk className="cd-sk-line" style={{ width: "40%" }} />
+        </div>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="cd-stat">
+            <Sk className="cd-sk-line" style={{ width: "55%" }} />
+            <Sk className="cd-sk-number" style={{ width: `${45 + i * 8}%` }} />
+            <Sk className="cd-sk-line" style={{ width: "70%" }} />
+          </div>
+        ))}
+      </section>
+      <Sk className="cd-sk-line" style={{ width: "min(560px, 80%)", margin: "14px 0 26px" }} />
+      <div className="cd-operation">
+        <Sk className="cd-sk-line" style={{ width: 220 }} />
+        <Sk className="cd-sk-line" style={{ width: 110 }} />
+      </div>
+    </div>
+  );
+}
+
+/** Esqueleto de "Últimos pedidos" y "Los más pedidos". */
+function ColumnsSkeleton() {
+  return (
+    <div className="cd-columns cd-skeleton" aria-hidden="true">
+      <section className="cd-panel">
+        <div className="cd-section-heading">
+          <div className="cd-sk-stack">
+            <Sk className="cd-sk-title" style={{ width: 170 }} />
+            <Sk className="cd-sk-line" style={{ width: 230 }} />
+          </div>
+        </div>
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="cd-sk-row">
+            <div className="cd-sk-stack">
+              <Sk className="cd-sk-line" style={{ width: 60 }} />
+              <Sk className="cd-sk-line" style={{ width: 120 }} />
+            </div>
+            <Sk className="cd-sk-line" style={{ width: 90 }} />
+            <Sk className="cd-sk-pill" />
+            <Sk className="cd-sk-line" style={{ width: 70, marginLeft: "auto" }} />
+          </div>
+        ))}
+      </section>
+      <section className="cd-panel">
+        <div className="cd-section-heading">
+          <div className="cd-sk-stack">
+            <Sk className="cd-sk-title" style={{ width: 150 }} />
+            <Sk className="cd-sk-line" style={{ width: 120 }} />
+          </div>
+        </div>
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="cd-sk-rank">
+            <Sk className="cd-sk-dot" />
+            <div className="cd-sk-stack" style={{ flex: 1 }}>
+              <Sk className="cd-sk-line" style={{ width: `${70 - i * 8}%` }} />
+              <Sk className="cd-sk-bar" style={{ width: `${100 - i * 15}%` }} />
+            </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
+import { Sk } from "@/components/ui/Skeleton";
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button, Modal, Badge } from "@/components/ui";
@@ -57,7 +58,23 @@ export function MenuManager({ tenantId }: { tenantId: string }) {
       </div>
 
       {loading ? (
-        <p className="text-muted">Cargando menú…</p>
+        <div className="flex flex-col gap-3" role="status">
+          <span className="sr-only">Cargando menú…</span>
+          <Sk className="h-6 w-40" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3"
+            >
+              <Sk className="h-14 w-14 shrink-0 rounded-lg" />
+              <div className="flex flex-1 flex-col gap-2">
+                <Sk className="h-4 w-1/2" />
+                <Sk className="h-3 w-1/3" />
+              </div>
+              <Sk className="h-8 w-20 rounded-lg" />
+            </div>
+          ))}
+        </div>
       ) : (
         grupos.map((g) => (
           <section key={g.categoria} className="flex flex-col gap-2">
@@ -74,7 +91,9 @@ export function MenuManager({ tenantId }: { tenantId: string }) {
                     <p className="font-bold text-text">{item.nombre}</p>
                     <p className="text-xs text-muted">
                       {item.variantes.length > 0
-                        ? item.variantes.map((v) => `${v.label} ${formatPrecio(v.precio)}`).join(" · ")
+                        ? item.variantes
+                            .map((v) => `${v.label} ${formatPrecio(v.precio)}`)
+                            .join(" · ")
                         : formatPrecio(item.precio)}
                     </p>
                   </div>
@@ -85,10 +104,18 @@ export function MenuManager({ tenantId }: { tenantId: string }) {
                   >
                     {item.activo ? "Desactivar" : "Activar"}
                   </button>
-                  <button onClick={() => editar(item)} className="p-1 text-muted hover:text-primary" aria-label="Editar">
+                  <button
+                    onClick={() => editar(item)}
+                    className="p-1 text-muted hover:text-primary"
+                    aria-label="Editar"
+                  >
                     <Pencil className="h-4 w-4" />
                   </button>
-                  <button onClick={() => eliminar(item)} className="p-1 text-muted hover:text-danger" aria-label="Eliminar">
+                  <button
+                    onClick={() => eliminar(item)}
+                    className="p-1 text-muted hover:text-danger"
+                    aria-label="Eliminar"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </li>
@@ -98,7 +125,11 @@ export function MenuManager({ tenantId }: { tenantId: string }) {
         ))
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? "Editar producto" : "Nuevo producto"}>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={editing ? "Editar producto" : "Nuevo producto"}
+      >
         <ProductForm
           tenantId={tenantId}
           initial={editing}

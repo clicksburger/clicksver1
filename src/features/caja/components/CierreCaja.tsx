@@ -1,5 +1,6 @@
 "use client";
 
+import { Sk } from "@/components/ui/Skeleton";
 import { useCallback, useEffect, useState } from "react";
 import { DoorOpen, DoorClosed, RefreshCw, Wallet, History, Download } from "lucide-react";
 import { Button } from "@/components/ui";
@@ -170,7 +171,20 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
       )}
 
       {cargando ? (
-        <p className="py-12 text-center text-muted">Cargando…</p>
+        <div
+          className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5"
+          role="status"
+        >
+          <span className="sr-only">Cargando caja…</span>
+          <Sk className="h-5 w-36" />
+          <Sk className="h-4 w-56" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Sk key={i} className="h-16 rounded-lg" />
+            ))}
+          </div>
+          <Sk className="h-11 w-44 rounded-lg" />
+        </div>
       ) : turno ? (
         <div className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5">
           <div className="flex items-center justify-between">

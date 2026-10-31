@@ -1,5 +1,6 @@
 "use client";
 
+import { Sk } from "@/components/ui/Skeleton";
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Check, X } from "lucide-react";
 import { Button } from "@/components/ui";
@@ -94,7 +95,12 @@ export function CategoriesManager({ tenantId }: { tenantId: string }) {
       {error && <p className="text-sm text-danger">{error}</p>}
 
       {loading ? (
-        <p className="text-muted">Cargando…</p>
+        <div className="flex flex-col gap-2" role="status">
+          <span className="sr-only">Cargando categorías…</span>
+          {[0, 1, 2, 3].map((i) => (
+            <Sk key={i} className="h-12 rounded-lg" />
+          ))}
+        </div>
       ) : cats.length === 0 ? (
         <p className="text-muted">Todavía no hay categorías. Creá la primera abajo.</p>
       ) : (

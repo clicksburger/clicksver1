@@ -57,6 +57,23 @@ const GALERIA: Record<string, string[]> = {
   "/img/promo-cryspy-doble.jpg": ["/img/promo-cryspy-doble-2.jpg"],
 };
 
+/**
+ * La carta muestra la categoría "Promociones" dentro de Hamburguesas, primera,
+ * para que las promos no queden en una pestaña aparte y se vean con las burgers.
+ */
+export function unirPromosConHamburguesas<T extends { categoria: string; items: MenuItem[] }>(
+  groups: T[],
+): T[] {
+  const promos = groups.find((group) => /^promo/i.test(group.categoria.trim()));
+  const burgers = groups.find((group) => group.categoria.toLowerCase().includes("hamburgues"));
+  if (!promos || !burgers) return groups;
+  return groups
+    .filter((group) => group !== promos)
+    .map((group) =>
+      group === burgers ? { ...group, items: [...promos.items, ...group.items] } : group,
+    );
+}
+
 export interface PromoSlide {
   key: string;
   item: MenuItem;

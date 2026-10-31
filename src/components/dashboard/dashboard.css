@@ -222,25 +222,6 @@
   font-weight: 700;
   white-space: nowrap;
 }
-.cd-promos {
-  margin-bottom: 29px;
-}
-.cd-promos-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 15px;
-  margin-bottom: 14px;
-}
-.cd-promos-heading h2 {
-  font-size: 17px;
-  font-weight: 900;
-}
-.cd-promos-heading p {
-  font-size: 13px;
-  color: #b9c2c1;
-  margin-top: 4px;
-}
 .cd-actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -485,14 +466,58 @@
 .cd-footnote strong {
   color: #fff8df;
 }
-.cd-loading {
-  padding: 45px;
-  text-align: center;
-  border: 1px solid #3a4b53;
-  background: #1c2a31;
-  border-radius: 12px;
-  margin-bottom: 24px;
-  color: #69727e;
+/* ── Skeletons de carga ── */
+.cd-skeleton .cd-revenue,
+.cd-skeleton .cd-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 146px;
+}
+.cd-sk-revenue {
+  --sk-base: #f2c200;
+  --sk-shine: #ffe574;
+}
+.cd-sk-line {
+  height: 11px;
+}
+.cd-sk-number {
+  height: 34px;
+  border-radius: 9px;
+}
+.cd-sk-title {
+  height: 17px;
+}
+.cd-sk-pill {
+  width: 82px;
+  height: 22px;
+  border-radius: 999px;
+}
+.cd-sk-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cd-sk-bar {
+  height: 6px;
+  border-radius: 6px;
+}
+.cd-sk-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cd-sk-row,
+.cd-sk-rank {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 15px 22px;
+  border-top: 1px solid #3a4b53;
+}
+.cd-sk-rank {
+  gap: 14px;
 }
 .cd-error {
   background: #fff0ed;
@@ -598,8 +623,9 @@
     padding: 20px 16px;
   }
 }
+/* Los skeletons siguen animados: muestran que el panel está cargando (pedido del local). */
 @media (prefers-reduced-motion: reduce) {
-  .clicks-dashboard * {
+  .clicks-dashboard *:not(.sk) {
     animation: none !important;
     transition: none !important;
   }

@@ -2,17 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import {
-  ArrowUpRight,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Pause,
-  Play,
-  Plus,
-  Sparkles,
-} from "lucide-react";
+import { Check, ChevronRight, Plus, Sparkles } from "lucide-react";
 import { formatPrecio } from "@/lib/format";
 import { diasRestantes, textoVigencia, type PromoSlide } from "../promos";
 import type { MenuItem } from "@/types/domain";
@@ -58,40 +48,32 @@ function cardStyle(offset: number): React.CSSProperties {
 }
 
 /**
- * Carrusel de promos destacadas, con las piezas como un mazo en 3D.
+ * Carrusel de promos destacadas de la carta, con las piezas como un mazo en 3D.
  * - Avanza solo: la barra de progreso de la pieza activa es una animación CSS
- *   y su `animationend` pasa a la siguiente. Pausar la animación (mouse encima,
- *   dedo apoyado, foco de teclado, pestaña oculta o botón de pausa) pausa el avance.
+ *   y su `animationend` pasa a la siguiente. El mouse encima, el dedo apoyado,
+ *   el foco de teclado o la pestaña oculta pausan el avance.
  * - Las piezas cambian de lugar con transiciones 3D; la del frente flota sobre
  *   una base de luz y se inclina siguiendo el mouse.
- * - Swipe táctil, flechas, teclado (← →) y barras de progreso clickeables.
- * - Con "reducir movimiento" no avanza solo ni anima.
- * - variant "menu": botón para agregar al pedido. "admin": vigencia y accesos.
+ * - Swipe táctil, teclado (← →) y barras de progreso clickeables; sin botones.
+ * - Se anima siempre, aunque el sistema tenga los efectos de animación
+ *   apagados (pedido del local: Windows suele traerlos desactivados).
  */
 export function PromoCarousel({
   slides,
-  variant,
   onAdd,
   onShow,
-  editHref,
-  menuHref,
 }: {
   slides: PromoSlide[];
-  variant: "menu" | "admin";
   /** Agrega al pedido un producto sin opciones. */
-  onAdd?: (item: MenuItem) => void;
+  onAdd: (item: MenuItem) => void;
   /** Lleva al producto cuando hay que elegir opciones (simple, doble, triple…). */
-  onShow?: (item: MenuItem) => void;
-  editHref?: string;
-  menuHref?: string;
+  onShow: (item: MenuItem) => void;
 }) {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [touching, setTouching] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [stopped, setStopped] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const [reduced, setReduced] = useState(false);
   const [added, setAdded] = useState<string | null>(null);
   const addedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pointer = useRef<{ x: number; y: number } | null>(null);
@@ -100,18 +82,13 @@ export function PromoCarousel({
   const total = slides.length;
   const active = Math.min(index, Math.max(0, total - 1));
   const multiple = total > 1;
-  const autoplay = multiple && !reduced && !stopped;
+  const autoplay = multiple;
   const paused = hovered || touching || focused || hidden;
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReduced(media.matches);
-    sync();
-    media.addEventListener("change", sync);
     const visibility = () => setHidden(document.hidden);
     document.addEventListener("visibilitychange", visibility);
     return () => {
-      media.removeEventListener("change", sync);
       document.removeEventListener("visibilitychange", visibility);
       clearTimeout(addedTimer.current);
     };
@@ -124,31 +101,14 @@ export function PromoCarousel({
     [multiple, total],
   );
 
-  if (!total) {
-    return variant === "admin" ? (
-      <div className="pc-empty">
-        <Sparkles size={22} />
-        <div>
-          <strong>No hay promos destacadas.</strong>
-          <span>
-            Marcá un producto como destacado en Configuración para mostrarlo acá y en la carta.
-          </span>
-        </div>
-        {editHref && (
-          <Link href={editHref}>
-            Ir al menú <ArrowUpRight size={15} />
-          </Link>
-        )}
-      </div>
-    ) : null;
-  }
+  if (!total) return null;
 
   function add(item: MenuItem) {
     if (item.variantes.length) {
-      onShow?.(item);
+      onShow(item);
       return;
     }
-    onAdd?.(item);
+    onAdd(item);
     setAdded(item.id);
     clearTimeout(addedTimer.current);
     addedTimer.current = setTimeout(() => setAdded(null), 1400);
@@ -157,7 +117,7 @@ export function PromoCarousel({
   /** Inclinación 3D de la pieza del frente siguiendo el mouse (no en táctil). */
   function tilt(event: React.PointerEvent<HTMLDivElement>) {
     const deck = deckRef.current;
-    if (!deck || event.pointerType !== "mouse" || reduced) return;
+    if (!deck || event.pointerType !== "mouse") return;
     const rect = deck.getBoundingClientRect();
     const px = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     const py = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
@@ -177,7 +137,6 @@ export function PromoCarousel({
 
   const item = slides[active]!.item;
   const dias = diasRestantes(item.vigenteHasta);
-  const vencida = dias != null && dias < 1;
   const justAdded = added === item.id;
   const uniqueItems = slides.filter(
     (slide, i) => slides.findIndex((s) => s.item.id === slide.item.id) === i,
@@ -185,9 +144,9 @@ export function PromoCarousel({
 
   return (
     <section
-      className={`pc pc--${variant} ${paused || !autoplay ? "is-paused" : ""}`}
+      className={`pc ${paused || !autoplay ? "is-paused" : ""}`}
       aria-roledescription="carrusel"
-      aria-label={variant === "menu" ? "Promos de Clicks" : "Promos activas"}
+      aria-label="Promos de Clicks"
       // El mouse encima pausa; el toque del dedo no deja la pausa "pegada".
       onPointerEnter={(event) => event.pointerType === "mouse" && setHovered(true)}
       onPointerLeave={(event) => event.pointerType === "mouse" && setHovered(false)}
@@ -202,25 +161,23 @@ export function PromoCarousel({
       }}
       style={{ "--pc-interval": `${INTERVALO_MS}ms` } as React.CSSProperties}
     >
-      {variant === "menu" && (
-        <div className="pc-marquee" aria-hidden="true">
-          <div className="pc-marquee-track">
-            {Array.from({ length: 2 }, (_, copy) => (
-              <span key={copy}>
-                {uniqueItems.map((slide) => (
-                  <span key={slide.item.id}>
-                    <b>Promo</b> {slide.item.nombre} <i>{precioDe(slide.item)}</i>
-                    <em>✦</em>
-                  </span>
-                ))}
-                <span>
-                  <b>Clicks</b> Tu antojo, a un click <em>✦</em>
+      <div className="pc-marquee" aria-hidden="true">
+        <div className="pc-marquee-track">
+          {Array.from({ length: 2 }, (_, copy) => (
+            <span key={copy}>
+              {uniqueItems.map((slide) => (
+                <span key={slide.item.id}>
+                  <b>Promo</b> {slide.item.nombre} <i>{precioDe(slide.item)}</i>
+                  <em>✦</em>
                 </span>
+              ))}
+              <span>
+                <b>Clicks</b> Tu antojo, a un click <em>✦</em>
               </span>
-            ))}
-          </div>
+            </span>
+          ))}
         </div>
-      )}
+      </div>
 
       <div
         className="pc-stage"
@@ -275,16 +232,19 @@ export function PromoCarousel({
                 >
                   <div className="pc-card-float">
                     <div className="pc-card-tilt">
-                      <div className="pc-card-face">
+                      <div className="pc-card-face sk-img">
                         {slide.src ? (
                           <Image
                             src={slide.src}
                             alt={pos === "front" ? `Pieza de la promo ${slide.item.nombre}` : ""}
                             fill
-                            sizes={variant === "menu" ? "(max-width: 700px) 42vw, 320px" : "160px"}
-                            priority={variant === "menu" && i === 0}
+                            sizes="(max-width: 700px) 42vw, 320px"
+                            priority={i === 0}
                             className="pc-card-img"
                             draggable={false}
+                            onLoad={(event) => {
+                              event.currentTarget.dataset.loaded = "1";
+                            }}
                           />
                         ) : (
                           <span className="pc-card-empty">
@@ -309,58 +269,37 @@ export function PromoCarousel({
           aria-roledescription="diapositiva"
           aria-label={`${active + 1} de ${total}: ${item.nombre}`}
         >
-          <span className={`pc-chip ${vencida ? "is-expired" : dias === 1 ? "is-last" : ""}`}>
+          <span className={`pc-chip ${dias === 1 ? "is-last" : ""}`}>
             <i aria-hidden="true" />
-            {variant === "admin" && vencida ? (
-              `${textoVigencia(item.vigenteHasta)} · ya no se muestra`
-            ) : (
-              <>
-                <span className="pc-chip-label">Promo · </span>
-                {textoVigencia(item.vigenteHasta)}
-              </>
-            )}
+            <span className="pc-chip-label">Promo · </span>
+            {textoVigencia(item.vigenteHasta)}
           </span>
           <h3>{item.nombre}</h3>
           {item.descripcion && <p>{item.descripcion}</p>}
           <strong className="pc-price">
             <PrecioGrande item={item} />
           </strong>
-          {variant === "menu" ? (
-            <div className="pc-actions">
-              <button
-                type="button"
-                className={`pc-cta ${justAdded ? "is-added" : ""}`}
-                onClick={() => add(item)}
-              >
-                {justAdded ? (
-                  <>
-                    <Check size={18} /> ¡Agregada!
-                  </>
-                ) : item.variantes.length ? (
-                  <>
-                    Elegir opción <ChevronRight size={18} />
-                  </>
-                ) : (
-                  <>
-                    <Plus size={18} /> Agregar al pedido
-                  </>
-                )}
-              </button>
-            </div>
-          ) : (
-            <div className="pc-actions">
-              {editHref && (
-                <Link className="pc-cta" href={editHref}>
-                  Editar promo <ArrowUpRight size={16} />
-                </Link>
+          <div className="pc-actions">
+            <button
+              type="button"
+              className={`pc-cta ${justAdded ? "is-added" : ""}`}
+              onClick={() => add(item)}
+            >
+              {justAdded ? (
+                <>
+                  <Check size={18} /> ¡Agregada!
+                </>
+              ) : item.variantes.length ? (
+                <>
+                  Elegir opción <ChevronRight size={18} />
+                </>
+              ) : (
+                <>
+                  <Plus size={18} /> Agregar al pedido
+                </>
               )}
-              {menuHref && (
-                <Link className="pc-link" href={menuHref} target="_blank" rel="noopener noreferrer">
-                  Ver en la carta <ArrowUpRight size={15} />
-                </Link>
-              )}
-            </div>
-          )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -391,25 +330,6 @@ export function PromoCarousel({
                 />
               </button>
             ))}
-          </div>
-          <div className="pc-arrows">
-            {!reduced && (
-              <button
-                type="button"
-                onClick={() => setStopped((value) => !value)}
-                aria-label={
-                  stopped ? "Reanudar el avance automático" : "Pausar el avance automático"
-                }
-              >
-                {stopped ? <Play size={16} /> : <Pause size={16} />}
-              </button>
-            )}
-            <button type="button" onClick={() => go(-1)} aria-label="Promo anterior">
-              <ChevronLeft size={19} />
-            </button>
-            <button type="button" onClick={() => go(1)} aria-label="Promo siguiente">
-              <ChevronRight size={19} />
-            </button>
           </div>
         </div>
       )}

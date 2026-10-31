@@ -65,3 +65,52 @@
     background: #ffffff !important;
   }
 }
+
+/* ── Skeletons: bloque con un brillo que lo recorre. Colores por --sk-base / --sk-shine.
+   En @layer components para que las clases de Tailwind (alto, ancho, bordes) lo ajusten. ── */
+@layer components {
+  .sk {
+    display: block;
+    border-radius: 6px;
+    background: linear-gradient(
+        100deg,
+        transparent 20%,
+        var(--sk-shine, #ffffff14) 50%,
+        transparent 80%
+      )
+      var(--sk-base, #23343c);
+    background-size: 250% 100%;
+    animation:
+      sk-shimmer 1.5s ease-in-out infinite,
+      sk-breathe 3s ease-in-out infinite;
+  }
+  .sk:nth-child(2n) {
+    animation-delay: 0.12s, 0.3s;
+  }
+  .sk:nth-child(3n) {
+    animation-delay: 0.24s, 0.6s;
+  }
+}
+@keyframes sk-shimmer {
+  from {
+    background-position: 125% 0;
+  }
+  to {
+    background-position: -125% 0;
+  }
+}
+@keyframes sk-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+/* Fotos que todavía no cargaron: el contenedor brilla hasta que llega la imagen. */
+.sk-img:has(img:not([data-loaded])) {
+  background: linear-gradient(100deg, transparent 20%, #ffffff12 50%, transparent 80%) #23343c;
+  background-size: 250% 100%;
+  animation: sk-shimmer 1.5s ease-in-out infinite;
+}

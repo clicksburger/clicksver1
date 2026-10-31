@@ -27,6 +27,7 @@ function load(file, overrides = {}) {
 const tarifas = load("src/features/envios/tarifas.ts");
 const checkout = load("src/features/orders/checkout.ts", {
   "@/features/envios/tarifas": tarifas,
+  "@/constants/business": load("src/constants/business.ts"),
   "@/features/menu/promos": load("src/features/menu/promos.ts"),
 });
 const { TRAMOS_DEFAULT: T, costoPorDistancia, distanciaKm, cotizar, envioConfigFromJson } = tarifas;
@@ -109,6 +110,22 @@ assert.doesNotMatch(aConfirmar, /Total a pagar/);
 const retiro = checkout.whatsappMessage(9, "Ana", "takeaway", items, { ...base, direccion: null });
 assert.match(retiro, /\*Total a pagar: \$\s?14\.500\*/);
 assert.doesNotMatch(retiro, /Envío:/);
+assert.doesNotMatch(retiro, /comprobante/);
+
+// Transferencia: alias del local y aviso del comprobante.
+const transferencia = checkout.whatsappMessage(10, "Ana", "takeaway", items, {
+  ...base,
+  direccion: null,
+  pago: "transferencia",
+});
+assert.match(transferencia, /Transferencia al alias CLICKSBURGER\. \(pendiente\)/);
+assert.match(transferencia, /Te adjunto el comprobante de la transferencia\./);
+const transferenciaAConfirmar = checkout.whatsappMessage(11, "Ana", "delivery", items, {
+  ...base,
+  pago: "transferencia",
+  envio: lejos,
+});
+assert.match(transferenciaAConfirmar, /Transfiero cuando me confirmen el total/);
 
 // El checkout acepta expectedEnvio opcional.
 const parsed = checkout.checkoutSchema.safeParse({

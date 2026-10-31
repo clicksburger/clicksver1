@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CheckCircle2, Loader2, MapPin, MessageCircle } from "lucide-react";
+import { Check, CheckCircle2, Copy, Landmark, Loader2, MapPin, MessageCircle } from "lucide-react";
 import { formatPrecio } from "@/lib/format";
-import { MOTIVO_A_CONFIRMAR, formatKm } from "@/features/envios/tarifas";
+import { MOTIVO_A_CONFIRMAR, aConfirmar, formatKm } from "@/features/envios/tarifas";
+import { ALIAS_TRANSFERENCIA } from "@/constants/business";
 import type { CotizacionEnvio, PedidoItem } from "@/types/domain";
 
 interface Receipt {
@@ -22,6 +23,46 @@ export interface CheckoutAttempt {
 }
 
 const normalizarDireccion = (value: string) => value.trim().replace(/\s+/g, " ");
+
+/** Alias del local con botón para copiarlo y el aviso del comprobante. */
+function AliasTransferencia({ envioAConfirmar }: { envioAConfirmar: boolean }) {
+  const [copiado, setCopiado] = useState(false);
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(ALIAS_TRANSFERENCIA);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1800);
+    } catch {
+      /* Sin permiso de portapapeles: el alias queda visible para copiarlo a mano. */
+    }
+  }
+  return (
+    <div className="mt-3 flex flex-col gap-2 rounded-xl border border-primary bg-surface2 p-3 text-left text-xs leading-relaxed">
+      <p className="flex items-center gap-2 font-bold text-text">
+        <Landmark size={15} className="text-primary" /> Transferí al alias
+      </p>
+      <div className="flex items-center justify-between gap-3">
+        <strong className="select-all font-display text-2xl tracking-wide text-primary">
+          {ALIAS_TRANSFERENCIA}
+        </strong>
+        <button
+          type="button"
+          onClick={() => void copiar()}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-primary px-3 py-2 font-bold text-primary"
+        >
+          {copiado ? <Check size={14} /> : <Copy size={14} />}
+          {copiado ? "Copiado" : "Copiar"}
+        </button>
+      </div>
+      <p className="text-muted">
+        <strong className="text-text">Adjuntá el comprobante</strong> en el chat de WhatsApp cuando
+        envíes el pedido.
+        {envioAConfirmar &&
+          " Como el envío está a confirmar, esperá que el local te pase el total antes de transferir."}
+      </p>
+    </div>
+  );
+}
 
 export function CheckoutForm({
   items,
@@ -59,6 +100,7 @@ export function CheckoutForm({
   const [envio, setEnvio] = useState(attempt.envio ?? null);
   const [cotizando, setCotizando] = useState(false);
   const [envioError, setEnvioError] = useState<string | null>(null);
+  const [pago, setPago] = useState<string | null>(previous?.pago ?? null);
   const cotizacionEnCurso = useRef<string | null>(null);
   const direccionActual = normalizarDireccion(direccion);
   const cotizacion =
@@ -94,13 +136,12 @@ export function CheckoutForm({
       if (!response.ok) throw new Error(result.error || "No se pudo calcular el envío.");
       guardarEnvio(para, result as CotizacionEnvio);
       return result as CotizacionEnvio;
-    } catch (cause) {
-      setEnvioError(
-        cause instanceof Error && cause.name !== "TimeoutError"
-          ? cause.message
-          : "No se pudo calcular el envío. Probá de nuevo.",
-      );
-      return null;
+    } catch {
+      // Sin cotización (sin conexión, límite de consultas, servicio caído): el pedido
+      // sigue con el envío "a confirmar" y el cliente lo informa por WhatsApp.
+      const sinCalculo = aConfirmar("no_disponible");
+      guardarEnvio(para, sinCalculo);
+      return sinCalculo;
     } finally {
       cotizacionEnCurso.current = null;
       setCotizando(false);
@@ -204,6 +245,11 @@ export function CheckoutForm({
             El costo del envío se confirma por WhatsApp: el local te va a responder con el valor
             antes de preparar el pedido.
           </p>
+        )}
+        {pago === "transferencia" && (
+          <div className="w-full">
+            <AliasTransferencia envioAConfirmar={!!receipt.envioAConfirmar} />
+          </div>
         )}
         <a
           href={receipt.whatsappUrl}
@@ -351,10 +397,14 @@ export function CheckoutForm({
                 )}
                 {!cotizando && cotizacion?.estado === "a_confirmar" && (
                   <div className="rounded-xl border border-primary p-3 text-xs leading-relaxed">
-                    <p className="font-bold text-text">Envío a confirmar por WhatsApp</p>
+                    <p className="font-bold text-text">No podemos calcular tu envío</p>
                     <p className="text-muted">
-                      {MOTIVO_A_CONFIRMAR[cotizacion.motivo]} Podés enviar el pedido igual: el local
-                      te confirma el costo del envío por WhatsApp antes de prepararlo.
+                      {MOTIVO_A_CONFIRMAR[cotizacion.motivo]}{" "}
+                      <strong className="text-text">
+                        Informalo cuando envíes el pedido por WhatsApp
+                      </strong>{" "}
+                      y el local te confirma el costo antes de prepararlo. Podés seguir con el
+                      pedido igual.
                     </p>
                   </div>
                 )}
@@ -393,6 +443,7 @@ export function CheckoutForm({
                   name="pago"
                   value={option.value}
                   defaultChecked={previous?.pago === option.value}
+                  onChange={() => setPago(option.value)}
                   required
                   className="accent-[#ffd21c]"
                 />
@@ -400,7 +451,13 @@ export function CheckoutForm({
               </label>
             ))}
           </div>
-          <p className="mt-3 text-xs text-muted">El local te indicará cómo completar el pago.</p>
+          {pago === "transferencia" ? (
+            <AliasTransferencia
+              envioAConfirmar={tipo === "delivery" && cotizacion?.estado !== "calculado"}
+            />
+          ) : (
+            <p className="mt-3 text-xs text-muted">Pagás al recibir o retirar tu pedido.</p>
+          )}
         </fieldset>
       </fieldset>
       <div className="flex flex-col gap-1 border-t border-border pt-4">

@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { CheckoutDetails, MenuItem, PedidoItem } from "@/types/domain";
 import { MOTIVO_A_CONFIRMAR, formatKm, mapsUrl, totalProductos } from "@/features/envios/tarifas";
 import { estaVigente } from "@/features/menu/promos";
+import { ALIAS_TRANSFERENCIA } from "@/constants/business";
 
 const phone = z
   .string()
@@ -137,7 +138,7 @@ export function whatsappMessage(
             : []),
         ]
       : []),
-    `Forma de pago: ${checkout.pago === "efectivo" ? "Efectivo" : "Transferencia"} (pendiente)`,
+    `Forma de pago: ${checkout.pago === "efectivo" ? "Efectivo" : `Transferencia al alias ${ALIAS_TRANSFERENCIA}`} (pendiente)`,
     "",
     ...items.map(
       (item) =>
@@ -145,6 +146,13 @@ export function whatsappMessage(
     ),
     "",
     ...envioLineas,
+    ...(checkout.pago === "transferencia"
+      ? [
+          tipo === "delivery" && envio?.estado !== "calculado"
+            ? "Transfiero cuando me confirmen el total con el envío y les mando el comprobante por acá."
+            : "Te adjunto el comprobante de la transferencia.",
+        ]
+      : []),
     "El pedido ya está registrado en el sistema. Quedo a la espera de confirmación del local.",
   ].join("\n");
 }
