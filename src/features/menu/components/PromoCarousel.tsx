@@ -25,13 +25,47 @@ function precioDe(item: MenuItem) {
   return `desde ${formatPrecio(Math.min(...item.variantes.map((v) => v.precio)))}`;
 }
 
+/** Precio para mostrar grande: el "desde" va chico para no partir la línea. */
+function PrecioGrande({ item }: { item: MenuItem }) {
+  if (!item.variantes.length) return <>{formatPrecio(item.precio)}</>;
+  return (
+    <>
+      <small>desde</small> {formatPrecio(Math.min(...item.variantes.map((v) => v.precio)))}
+    </>
+  );
+}
+
+/** Distancia circular de una pieza a la activa: 0 al frente, ±1 detrás, etc. */
+function offsetOf(i: number, active: number, total: number) {
+  let offset = (i - active + total) % total;
+  if (offset > total / 2) offset -= total;
+  return offset;
+}
+
+/** Posición 3D de cada pieza del mazo según su distancia a la activa. */
+function cardStyle(offset: number): React.CSSProperties {
+  const side = Math.sign(offset);
+  const depth = Math.min(Math.abs(offset), 2);
+  return {
+    "--x": `${side * (depth === 1 ? 16 : 30)}%`,
+    "--y": `${depth * -3}%`,
+    "--z": `${depth * -150}px`,
+    "--ry": `${side * -18 * depth}deg`,
+    "--rz": `${side * 4 * depth}deg`,
+    "--s": `${1 - depth * 0.1}`,
+    zIndex: 10 - depth,
+  } as React.CSSProperties;
+}
+
 /**
- * Carrusel de promos destacadas.
- * - Avanza solo: la barra de progreso de la diapositiva activa es una animación
- *   CSS y su `animationend` pasa a la siguiente. Pausar la animación (hover,
- *   foco, pestaña oculta, botón de pausa) pausa también el avance.
- * - Swipe táctil, flechas, teclado (← →) y puntos de progreso clickeables.
- * - Con "reducir movimiento" no avanza solo ni anima el ingreso.
+ * Carrusel de promos destacadas, con las piezas como un mazo en 3D.
+ * - Avanza solo: la barra de progreso de la pieza activa es una animación CSS
+ *   y su `animationend` pasa a la siguiente. Pausar la animación (mouse encima,
+ *   dedo apoyado, foco de teclado, pestaña oculta o botón de pausa) pausa el avance.
+ * - Las piezas cambian de lugar con transiciones 3D; la del frente flota sobre
+ *   una base de luz y se inclina siguiendo el mouse.
+ * - Swipe táctil, flechas, teclado (← →) y barras de progreso clickeables.
+ * - Con "reducir movimiento" no avanza solo ni anima.
  * - variant "menu": botón para agregar al pedido. "admin": vigencia y accesos.
  */
 export function PromoCarousel({
@@ -52,10 +86,8 @@ export function PromoCarousel({
   menuHref?: string;
 }) {
   const [index, setIndex] = useState(0);
-  const [dir, setDir] = useState<1 | -1>(1);
-  /** Diapositiva que está saliendo: se anima hacia afuera en la dirección del avance. */
-  const [leaving, setLeaving] = useState<number | null>(null);
   const [hovered, setHovered] = useState(false);
+  const [touching, setTouching] = useState(false);
   const [focused, setFocused] = useState(false);
   const [stopped, setStopped] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -63,12 +95,13 @@ export function PromoCarousel({
   const [added, setAdded] = useState<string | null>(null);
   const addedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pointer = useRef<{ x: number; y: number } | null>(null);
+  const deckRef = useRef<HTMLDivElement>(null);
 
   const total = slides.length;
   const active = Math.min(index, Math.max(0, total - 1));
   const multiple = total > 1;
   const autoplay = multiple && !reduced && !stopped;
-  const paused = hovered || focused || hidden;
+  const paused = hovered || touching || focused || hidden;
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -86,19 +119,10 @@ export function PromoCarousel({
 
   const go = useCallback(
     (step: 1 | -1) => {
-      if (!multiple) return;
-      setDir(step);
-      setLeaving(active);
-      setIndex((active + step + total) % total);
+      if (multiple) setIndex((current) => (Math.min(current, total - 1) + step + total) % total);
     },
-    [multiple, total, active],
+    [multiple, total],
   );
-  const goTo = (target: number) => {
-    if (target === active) return;
-    setDir(target > active ? 1 : -1);
-    setLeaving(active);
-    setIndex(target);
-  };
 
   if (!total) {
     return variant === "admin" ? (
@@ -130,15 +154,43 @@ export function PromoCarousel({
     addedTimer.current = setTimeout(() => setAdded(null), 1400);
   }
 
-  const current = slides[active]!;
+  /** Inclinación 3D de la pieza del frente siguiendo el mouse (no en táctil). */
+  function tilt(event: React.PointerEvent<HTMLDivElement>) {
+    const deck = deckRef.current;
+    if (!deck || event.pointerType !== "mouse" || reduced) return;
+    const rect = deck.getBoundingClientRect();
+    const px = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const py = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    deck.style.setProperty("--tilt-y", `${(px - 0.5) * 22}deg`);
+    deck.style.setProperty("--tilt-x", `${(0.5 - py) * 18}deg`);
+    deck.style.setProperty("--glare-x", `${px * 100}%`);
+    deck.style.setProperty("--glare-y", `${py * 100}%`);
+    deck.dataset.tilting = "true";
+  }
+  function untilt() {
+    const deck = deckRef.current;
+    if (!deck) return;
+    deck.style.setProperty("--tilt-y", "0deg");
+    deck.style.setProperty("--tilt-x", "0deg");
+    delete deck.dataset.tilting;
+  }
+
+  const item = slides[active]!.item;
+  const dias = diasRestantes(item.vigenteHasta);
+  const vencida = dias != null && dias < 1;
+  const justAdded = added === item.id;
+  const uniqueItems = slides.filter(
+    (slide, i) => slides.findIndex((s) => s.item.id === slide.item.id) === i,
+  );
 
   return (
     <section
       className={`pc pc--${variant} ${paused || !autoplay ? "is-paused" : ""}`}
       aria-roledescription="carrusel"
       aria-label={variant === "menu" ? "Promos de Clicks" : "Promos activas"}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      // El mouse encima pausa; el toque del dedo no deja la pausa "pegada".
+      onPointerEnter={(event) => event.pointerType === "mouse" && setHovered(true)}
+      onPointerLeave={(event) => event.pointerType === "mouse" && setHovered(false)}
       // Solo el foco de teclado pausa: un clic en las flechas no debe frenarlo para siempre.
       onFocus={(event) => setFocused(event.target.matches(":focus-visible"))}
       onBlur={(event) => {
@@ -155,14 +207,12 @@ export function PromoCarousel({
           <div className="pc-marquee-track">
             {Array.from({ length: 2 }, (_, copy) => (
               <span key={copy}>
-                {slides
-                  .filter((slide, i) => slides.findIndex((s) => s.item.id === slide.item.id) === i)
-                  .map((slide) => (
-                    <span key={slide.item.id}>
-                      <b>Promo</b> {slide.item.nombre} <i>{precioDe(slide.item)}</i>
-                      <em>✦</em>
-                    </span>
-                  ))}
+                {uniqueItems.map((slide) => (
+                  <span key={slide.item.id}>
+                    <b>Promo</b> {slide.item.nombre} <i>{precioDe(slide.item)}</i>
+                    <em>✦</em>
+                  </span>
+                ))}
                 <span>
                   <b>Clicks</b> Tu antojo, a un click <em>✦</em>
                 </span>
@@ -174,115 +224,144 @@ export function PromoCarousel({
 
       <div
         className="pc-stage"
-        data-dir={dir === 1 ? "next" : "prev"}
         onPointerDown={(event) => {
           pointer.current = { x: event.clientX, y: event.clientY };
+          if (event.pointerType !== "mouse") setTouching(true);
         }}
         onPointerUp={(event) => {
+          setTouching(false);
           const start = pointer.current;
           pointer.current = null;
           if (!start) return;
           const dx = event.clientX - start.x;
-          if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(event.clientY - start.y))
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(event.clientY - start.y))
             go(dx < 0 ? 1 : -1);
         }}
-        onPointerCancel={() => (pointer.current = null)}
+        onPointerCancel={() => {
+          pointer.current = null;
+          setTouching(false);
+        }}
       >
-        <div className="pc-glow" aria-hidden="true" />
-        {slides.map((slide, i) => {
-          const state = i === active ? "active" : i === leaving ? "leaving" : "idle";
-          const dias = diasRestantes(slide.item.vigenteHasta);
-          const vencida = dias != null && dias < 1;
-          const justAdded = added === slide.item.id;
-          return (
-            <div
-              key={slide.key}
-              className="pc-slide"
-              data-state={state}
-              role="group"
-              aria-roledescription="diapositiva"
-              aria-label={`${i + 1} de ${total}: ${slide.item.nombre}`}
-              aria-hidden={state !== "active"}
-              inert={state !== "active"}
-            >
-              <div className="pc-backdrop" aria-hidden="true">
-                {slide.src && (
-                  <Image src={slide.src} alt="" fill sizes="40vw" className="pc-backdrop-img" />
-                )}
-              </div>
-              <figure className="pc-flyer">
-                <div className="pc-flyer-card">
-                  {slide.src ? (
-                    <Image
-                      src={slide.src}
-                      alt={`Pieza de la promo ${slide.item.nombre}`}
-                      fill
-                      sizes={variant === "menu" ? "(max-width: 700px) 62vw, 330px" : "220px"}
-                      priority={variant === "menu" && i === 0}
-                      className="pc-flyer-img"
-                    />
-                  ) : (
-                    <span className="pc-flyer-empty">
-                      <Sparkles size={32} />
-                    </span>
-                  )}
-                </div>
-              </figure>
-              <div className="pc-copy">
-                <span className={`pc-chip ${vencida ? "is-expired" : dias === 1 ? "is-last" : ""}`}>
-                  <i aria-hidden="true" />
-                  {variant === "admin" && vencida
-                    ? `${textoVigencia(slide.item.vigenteHasta)} · ya no se muestra`
-                    : `Promo · ${textoVigencia(slide.item.vigenteHasta)}`}
-                </span>
-                <h3>{slide.item.nombre}</h3>
-                {slide.item.descripcion && <p>{slide.item.descripcion}</p>}
-                <strong className="pc-price">{precioDe(slide.item)}</strong>
-                {variant === "menu" ? (
-                  <div className="pc-actions">
-                    <button
-                      type="button"
-                      className={`pc-cta ${justAdded ? "is-added" : ""}`}
-                      onClick={() => add(slide.item)}
-                    >
-                      {justAdded ? (
-                        <>
-                          <Check size={19} /> ¡Agregada al pedido!
-                        </>
-                      ) : slide.item.variantes.length ? (
-                        <>
-                          Elegir opción <ChevronRight size={19} />
-                        </>
-                      ) : (
-                        <>
-                          <Plus size={19} /> Agregar al pedido
-                        </>
-                      )}
-                    </button>
+        {slides.map((slide, i) => (
+          <div
+            key={slide.key}
+            className="pc-backdrop"
+            data-active={i === active}
+            aria-hidden="true"
+          >
+            {slide.src && (
+              <Image src={slide.src} alt="" fill sizes="30vw" className="pc-backdrop-img" />
+            )}
+          </div>
+        ))}
+
+        <div className="pc-showcase">
+          <div className="pc-floor" aria-hidden="true">
+            <span className="pc-ring" />
+            <span className="pc-shadow" />
+          </div>
+          <div ref={deckRef} className="pc-deck" onPointerMove={tilt} onPointerLeave={untilt}>
+            {slides.map((slide, i) => {
+              const offset = offsetOf(i, active, total);
+              const pos = offset === 0 ? "front" : Math.abs(offset) === 1 ? "back" : "far";
+              return (
+                <figure
+                  key={slide.key}
+                  className="pc-card"
+                  data-pos={pos}
+                  style={cardStyle(offset)}
+                  aria-hidden={pos !== "front"}
+                  onClick={pos === "back" ? () => go(offset > 0 ? 1 : -1) : undefined}
+                >
+                  <div className="pc-card-float">
+                    <div className="pc-card-tilt">
+                      <div className="pc-card-face">
+                        {slide.src ? (
+                          <Image
+                            src={slide.src}
+                            alt={pos === "front" ? `Pieza de la promo ${slide.item.nombre}` : ""}
+                            fill
+                            sizes={variant === "menu" ? "(max-width: 700px) 42vw, 320px" : "160px"}
+                            priority={variant === "menu" && i === 0}
+                            className="pc-card-img"
+                            draggable={false}
+                          />
+                        ) : (
+                          <span className="pc-card-empty">
+                            <Sparkles size={32} />
+                          </span>
+                        )}
+                        <span className="pc-glare" aria-hidden="true" />
+                      </div>
+                    </div>
                   </div>
+                </figure>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* La clave remonta el texto al cambiar de producto: vuelve a correr la entrada. */}
+        <div
+          key={item.id}
+          className="pc-copy"
+          role="group"
+          aria-roledescription="diapositiva"
+          aria-label={`${active + 1} de ${total}: ${item.nombre}`}
+        >
+          <span className={`pc-chip ${vencida ? "is-expired" : dias === 1 ? "is-last" : ""}`}>
+            <i aria-hidden="true" />
+            {variant === "admin" && vencida ? (
+              `${textoVigencia(item.vigenteHasta)} · ya no se muestra`
+            ) : (
+              <>
+                <span className="pc-chip-label">Promo · </span>
+                {textoVigencia(item.vigenteHasta)}
+              </>
+            )}
+          </span>
+          <h3>{item.nombre}</h3>
+          {item.descripcion && <p>{item.descripcion}</p>}
+          <strong className="pc-price">
+            <PrecioGrande item={item} />
+          </strong>
+          {variant === "menu" ? (
+            <div className="pc-actions">
+              <button
+                type="button"
+                className={`pc-cta ${justAdded ? "is-added" : ""}`}
+                onClick={() => add(item)}
+              >
+                {justAdded ? (
+                  <>
+                    <Check size={18} /> ¡Agregada!
+                  </>
+                ) : item.variantes.length ? (
+                  <>
+                    Elegir opción <ChevronRight size={18} />
+                  </>
                 ) : (
-                  <div className="pc-actions">
-                    {editHref && (
-                      <Link className="pc-cta" href={editHref}>
-                        Editar promo <ArrowUpRight size={16} />
-                      </Link>
-                    )}
-                    {menuHref && (
-                      <Link
-                        className="pc-link"
-                        href={menuHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Ver en la carta <ArrowUpRight size={15} />
-                      </Link>
-                    )}
-                  </div>
+                  <>
+                    <Plus size={18} /> Agregar al pedido
+                  </>
                 )}
-              </div>
+              </button>
             </div>
-          );
-        })}
+          ) : (
+            <div className="pc-actions">
+              {editHref && (
+                <Link className="pc-cta" href={editHref}>
+                  Editar promo <ArrowUpRight size={16} />
+                </Link>
+              )}
+              {menuHref && (
+                <Link className="pc-link" href={menuHref} target="_blank" rel="noopener noreferrer">
+                  Ver en la carta <ArrowUpRight size={15} />
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {multiple && (
@@ -294,11 +373,11 @@ export function PromoCarousel({
                 type="button"
                 aria-label={`Ver promo ${i + 1} de ${total}`}
                 aria-current={i === active}
-                onClick={() => goTo(i)}
+                onClick={() => setIndex(i)}
               >
                 <span
-                  // La clave reinicia la animación cada vez que la diapositiva vuelve a estar activa.
-                  key={i === active ? `on-${active}-${dir}` : "off"}
+                  // La clave reinicia la barra cada vez que la pieza vuelve al frente.
+                  key={i === active ? `on-${active}` : "off"}
                   className={
                     i === active
                       ? autoplay
@@ -336,7 +415,7 @@ export function PromoCarousel({
       )}
       {/* Mientras avanza solo no se anuncia cada cambio (sería ruido para el lector). */}
       <p className="sr-only" aria-live={autoplay && !paused ? "off" : "polite"}>
-        {current.item.nombre}, {precioDe(current.item)}.
+        {item.nombre}, {precioDe(item)}.
       </p>
     </section>
   );
