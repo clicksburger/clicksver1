@@ -8,6 +8,8 @@ import { ClicksLogo } from "@/components/ui/ClicksLogo";
 import { groupByCategoria } from "../mappers";
 import { MenuItemCard } from "./MenuItemCard";
 import { CartPanel } from "./CartPanel";
+import { PromoCarousel } from "./PromoCarousel";
+import { promoSlides } from "../promos";
 import { Sheet } from "@/components/ui";
 import { cartCount, cartTotal, useCartStore } from "../store/cart.store";
 import { estaAbierto, DIAS } from "@/features/tenants/horarios";
@@ -30,6 +32,13 @@ function mascotaDe(categoria: string) {
 
 export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[] }) {
   const groups = useMemo(() => groupByCategoria(items), [items]);
+  const slides = useMemo(() => promoSlides(items), [items]);
+  const addToCart = useCartStore((state) => state.add);
+  /** "Elegí tu burger" apunta a Hamburguesas aunque Promociones vaya primero. */
+  const burgersIndex = Math.max(
+    0,
+    groups.findIndex((group) => group.categoria.toLowerCase().includes("hamburgues")),
+  );
   const count = useCartStore((state) => cartCount(state.lines));
   const total = useCartStore((state) => cartTotal(state.lines));
   const [open, setOpen] = useState(true);
@@ -140,7 +149,7 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
               Clicks.
             </h1>
             <div className="cm-hero-bottom">
-              <button type="button" onClick={() => choose(0)} className="cm-hero-cta">
+              <button type="button" onClick={() => choose(burgersIndex)} className="cm-hero-cta">
                 Elegí tu burger <ArrowDown size={19} />
               </button>
               <span>
@@ -156,6 +165,26 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
         <span>Burgers con nombre propio.</span>
         <span>Retiro y delivery.</span>
       </div>
+      <PromoCarousel
+        slides={slides}
+        variant="menu"
+        onAdd={(item) =>
+          addToCart({
+            itemId: item.id,
+            nombre: item.nombre,
+            variante: null,
+            precio: item.precio ?? 0,
+          })
+        }
+        onShow={(item) =>
+          choose(
+            Math.max(
+              0,
+              groups.findIndex((group) => group.items.some((i) => i.id === item.id)),
+            ),
+          )
+        }
+      />
       <nav
         ref={navRef}
         className="cm-category-nav"

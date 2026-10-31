@@ -222,6 +222,25 @@
   font-weight: 700;
   white-space: nowrap;
 }
+.cd-promos {
+  margin-bottom: 29px;
+}
+.cd-promos-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 14px;
+}
+.cd-promos-heading h2 {
+  font-size: 17px;
+  font-weight: 900;
+}
+.cd-promos-heading p {
+  font-size: 13px;
+  color: #b9c2c1;
+  margin-top: 4px;
+}
 .cd-actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

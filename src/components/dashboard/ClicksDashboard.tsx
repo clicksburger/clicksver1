@@ -16,6 +16,9 @@ import { loadDashboard, loadShiftDashboard } from "@/features/dashboard/dashboar
 import { money, orderTotal, periodStart, summarize } from "@/features/dashboard/summary";
 import { envioDe } from "@/features/envios/tarifas";
 import { ESTADO_LABEL } from "@/constants/order-states";
+import { PromoCarousel } from "@/features/menu/components/PromoCarousel";
+import { fetchMenuAll } from "@/features/menu/services/menu.client";
+import { promoSlides, type PromoSlide } from "@/features/menu/promos";
 import { routes } from "@/constants/routes";
 import type { Tenant } from "@/types/domain";
 import "./dashboard.css";
@@ -38,6 +41,23 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updated, setUpdated] = useState<string | null>(null);
+  const [promos, setPromos] = useState<PromoSlide[] | null>(null);
+  const [promosError, setPromosError] = useState(false);
+
+  // Promos destacadas (incluye vencidas, marcadas como tales). Se recargan con "Actualizar".
+  useEffect(() => {
+    let active = true;
+    fetchMenuAll(tenant.id)
+      .then((items) => {
+        if (!active) return;
+        setPromos(promoSlides(items, { incluirVencidas: true }));
+        setPromosError(false);
+      })
+      .catch(() => active && setPromosError(true));
+    return () => {
+      active = false;
+    };
+  }, [tenant.id, revision]);
 
   useEffect(() => {
     let active = true;
@@ -256,6 +276,30 @@ export function ClicksDashboard({ tenant }: { tenant: Tenant }) {
           )
         )}
       </div>
+
+      <section className="cd-promos" aria-labelledby="cd-promos-title">
+        <div className="cd-promos-heading">
+          <div>
+            <h2 id="cd-promos-title">Promos destacadas</h2>
+            <p>Así se ven en la carta. Al vencer dejan de mostrarse y de poder pedirse.</p>
+          </div>
+        </div>
+        {promosError ? (
+          <div className="cd-error" role="alert">
+            No se pudieron cargar las promos.{" "}
+            <button onClick={() => setRevision((value) => value + 1)}>Reintentar</button>
+          </div>
+        ) : promos ? (
+          <PromoCarousel
+            slides={promos}
+            variant="admin"
+            editHref={routes.settings(tenant.slug)}
+            menuHref={routes.menu(tenant.slug)}
+          />
+        ) : (
+          <div className="cd-loading">Cargando promos…</div>
+        )}
+      </section>
 
       <section className="cd-actions" aria-label="Accesos a la operación">
         {actions.map((action) => (

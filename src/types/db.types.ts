@@ -154,6 +154,7 @@ export type Database = {
           orden: number
           precio: number | null
           tenant_id: string
+          vigente_hasta: string | null
         }
         Insert: {
           activo?: boolean
@@ -168,6 +169,7 @@ export type Database = {
           orden?: number
           precio?: number | null
           tenant_id: string
+          vigente_hasta?: string | null
         }
         Update: {
           activo?: boolean
@@ -182,6 +184,7 @@ export type Database = {
           orden?: number
           precio?: number | null
           tenant_id?: string
+          vigente_hasta?: string | null
         }
         Relationships: [
           {

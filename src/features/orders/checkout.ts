@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CheckoutDetails, MenuItem, PedidoItem } from "@/types/domain";
 import { MOTIVO_A_CONFIRMAR, formatKm, mapsUrl, totalProductos } from "@/features/envios/tarifas";
+import { estaVigente } from "@/features/menu/promos";
 
 const phone = z
   .string()
@@ -45,7 +46,9 @@ export type CheckoutInput = z.infer<typeof checkoutSchema>;
 /** El catálogo del servidor determina nombres, opciones y precios. */
 export function priceCheckout(input: CheckoutInput, menu: MenuItem[]): PedidoItem[] {
   return input.items.map((line) => {
-    const product = menu.find((item) => item.id === line.itemId && item.activo);
+    const product = menu.find(
+      (item) => item.id === line.itemId && item.activo && estaVigente(item),
+    );
     if (!product) throw new Error("Un producto dejó de estar disponible. Revisá el carrito.");
     let precio = product.precio;
     let variante: string | null = null;

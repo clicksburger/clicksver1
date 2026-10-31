@@ -77,6 +77,8 @@ export interface MenuItem {
   imagenUrl: string | null;
   activo: boolean;
   destacado: boolean;
+  /** Último día comercial (YYYY-MM-DD, Buenos Aires) en que se ofrece. null = sin vencimiento. */
+  vigenteHasta: string | null;
   orden: number;
   variantes: MenuVariant[];
 }

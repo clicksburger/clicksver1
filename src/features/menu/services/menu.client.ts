@@ -17,6 +17,11 @@ export interface ProductInput {
   imagenUrl: string | null;
   activo: boolean;
   destacado: boolean;
+  /**
+   * Último día en que se ofrece (YYYY-MM-DD) o null. undefined = no tocar la
+   * columna (así se puede editar el menú aunque falte la migración 0020).
+   */
+  vigenteHasta?: string | null;
   orden: number;
   variantes: VariantInput[];
 }
@@ -45,9 +50,15 @@ export async function listCategorias(tenantId: string): Promise<Categoria[]> {
   return (data ?? []).map(mapCategoria);
 }
 
-export async function createCategoria(tenantId: string, nombre: string, orden: number): Promise<void> {
+export async function createCategoria(
+  tenantId: string,
+  nombre: string,
+  orden: number,
+): Promise<void> {
   const supabase = createSupabaseBrowserClient();
-  const { error } = await supabase.from("categorias").insert({ tenant_id: tenantId, nombre, orden });
+  const { error } = await supabase
+    .from("categorias")
+    .insert({ tenant_id: tenantId, nombre, orden });
   if (error) {
     if (error.code === "23505") throw new Error("Ya existe una categoría con ese nombre.");
     throw new Error(error.message);
@@ -111,6 +122,7 @@ export async function createMenuItem(tenantId: string, input: ProductInput): Pro
       imagen_url: input.imagenUrl,
       activo: input.activo,
       destacado: input.destacado,
+      ...(input.vigenteHasta !== undefined && { vigente_hasta: input.vigenteHasta }),
       orden: input.orden,
     })
     .select("id")
@@ -139,6 +151,7 @@ export async function updateMenuItem(
       imagen_url: input.imagenUrl,
       activo: input.activo,
       destacado: input.destacado,
+      ...(input.vigenteHasta !== undefined && { vigente_hasta: input.vigenteHasta }),
       orden: input.orden,
     })
     .eq("id", id);

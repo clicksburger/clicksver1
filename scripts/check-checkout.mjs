@@ -23,7 +23,11 @@ function load(file, overrides = {}) {
   return exports;
 }
 const tarifas = load("src/features/envios/tarifas.ts");
-const checkout = load("src/features/orders/checkout.ts", { "@/features/envios/tarifas": tarifas });
+const promos = load("src/features/menu/promos.ts");
+const checkout = load("src/features/orders/checkout.ts", {
+  "@/features/envios/tarifas": tarifas,
+  "@/features/menu/promos": promos,
+});
 // El envío se simula: por defecto "a confirmar" (sin clave de Google).
 let cotizacionEnvio = tarifas.aConfirmar("no_disponible");
 const horarios = load("src/features/tenants/horarios.ts");
@@ -80,6 +84,48 @@ assert.throws(() =>
     menu,
   ),
 );
+
+// Promos con vencimiento: día comercial de Buenos Aires con corte a las 06:00.
+const at = (iso) => new Date(iso);
+assert.equal(promos.diaComercial(at("2026-11-01T23:30:00-03:00")), "2026-11-01");
+assert.equal(promos.diaComercial(at("2026-11-02T02:00:00-03:00")), "2026-11-01");
+assert.equal(promos.diaComercial(at("2026-11-02T06:30:00-03:00")), "2026-11-02");
+const promo = { vigenteHasta: "2026-11-01" };
+assert.equal(promos.estaVigente(promo, at("2026-10-31T21:00:00-03:00")), true);
+assert.equal(promos.estaVigente(promo, at("2026-11-02T01:00:00-03:00")), true);
+assert.equal(promos.estaVigente(promo, at("2026-11-02T07:00:00-03:00")), false);
+assert.equal(promos.estaVigente({ vigenteHasta: null }), true);
+assert.equal(promos.diasRestantes("2026-11-01", at("2026-10-31T12:00:00-03:00")), 2);
+assert.equal(promos.textoVigencia("2026-11-01", at("2026-11-01T12:00:00-03:00")), "Último día");
+const vencida = {
+  id: randomUUID(),
+  nombre: "PROMO",
+  activo: true,
+  precio: 13500,
+  variantes: [],
+  vigenteHasta: "2000-01-01",
+};
+assert.throws(
+  () =>
+    checkout.priceCheckout(
+      { ...parsed, items: [{ itemId: vencida.id, variante: null, cantidad: 1 }] },
+      [vencida],
+    ),
+  /dejó de estar disponible/,
+);
+const slides = promos.promoSlides([
+  { ...vencida, destacado: true, imagenUrl: "/img/promo-cryspy-doble.jpg" },
+  {
+    ...vencida,
+    id: randomUUID(),
+    destacado: true,
+    vigenteHasta: null,
+    imagenUrl: "/img/promo-cryspy-doble.jpg",
+  },
+  { ...vencida, id: randomUUID(), destacado: false, vigenteHasta: null, imagenUrl: null },
+]);
+assert.equal(slides.length, 2); // solo la vigente, con sus dos piezas
+assert.equal(slides[1].src, "/img/promo-cryspy-doble-2.jpg");
 
 const rows = [];
 let closed = false;
@@ -193,7 +239,11 @@ assert.equal(
   (await route.POST(request({ ...body, requestId: randomUUID(), direccion: "" }))).status,
   400,
 );
-assert.equal((await route.POST(request({ ...body, requestId: randomUUID(), expectedTotal: 1 }))).status, 409, "Pide revisar la carta si cambió el total");
+assert.equal(
+  (await route.POST(request({ ...body, requestId: randomUUID(), expectedTotal: 1 }))).status,
+  409,
+  "Pide revisar la carta si cambió el total",
+);
 assert.equal(rows.length, 1, "No registra un pedido con un total no aceptado");
 // Envío calculado por distancia: se suma al total y se guarda en el pedido.
 cotizacionEnvio = {
@@ -214,7 +264,9 @@ assert.equal(rows.at(-1).costo_envio, 1500);
 assert.equal(checkout.readCheckout(rows.at(-1).items).envio.km, 1.8);
 assert.ok(
   new URL(envioReceipt.whatsappUrl).searchParams.get("text").includes("Total a pagar: $ 9.000") ||
-    new URL(envioReceipt.whatsappUrl).searchParams.get("text").includes("Total a pagar: $\u00a09.000"),
+    new URL(envioReceipt.whatsappUrl).searchParams
+      .get("text")
+      .includes("Total a pagar: $\u00a09.000"),
 );
 // Reintento del mismo pedido: devuelve el mismo total con envío.
 assert.equal((await (await route.POST(request(conEnvio))).json()).total, 9000);

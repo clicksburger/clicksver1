@@ -49,6 +49,8 @@ export function mapMenu(
       imagenUrl: row.imagen_url,
       activo: row.activo,
       destacado: row.destacado,
+      // La columna llega con la migración 0020; antes de aplicarla vale null.
+      vigenteHasta: row.vigente_hasta ?? null,
       orden: row.orden,
       variantes: (byItem.get(row.id) ?? []).sort((a, b) => a.orden - b.orden),
     };

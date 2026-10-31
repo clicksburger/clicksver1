@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useState } from "react";
-import { Trash2, Plus, Star } from "lucide-react";
+import { CalendarClock, Trash2, Plus, Star } from "lucide-react";
 import { Button } from "@/components/ui";
 import { Input, FormField } from "@/components/forms";
 import {
@@ -41,6 +41,7 @@ export function ProductForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initial?.imagenUrl ?? null);
   const [destacado, setDestacado] = useState(initial?.destacado ?? false);
+  const [vigenteHasta, setVigenteHasta] = useState(initial?.vigenteHasta ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,6 +76,8 @@ export function ProductForm({
         imagenUrl: initial?.imagenUrl ?? null,
         activo: initial?.activo ?? true,
         destacado,
+        // Sin fecha antes ni ahora: no se envía la columna (ver ProductInput).
+        vigenteHasta: vigenteHasta || (initial?.vigenteHasta ? null : undefined),
         orden: initial?.orden ?? 0,
         variantes: hasVariants
           ? variantes
@@ -194,14 +197,37 @@ export function ProductForm({
             <Star className="h-4 w-4 text-primary" /> Destacar en el menú
           </span>
           <span className="mt-0.5 block text-xs text-muted">
-            Aparece resaltado en el banner principal del menú público.
+            Aparece en el carrusel de promos de la carta y del panel.
           </span>
         </span>
       </label>
 
+      <FormField
+        label="Vigente hasta (opcional)"
+        htmlFor="p-vigencia"
+        hint="Para promos: el día siguiente deja de mostrarse y no se puede pedir. Vacío = sin vencimiento."
+      >
+        <div className="flex items-center gap-2">
+          <CalendarClock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+          <Input
+            id="p-vigencia"
+            type="date"
+            value={vigenteHasta}
+            onChange={(e) => setVigenteHasta(e.target.value)}
+          />
+          {vigenteHasta && (
+            <Button size="sm" variant="ghost" onClick={() => setVigenteHasta("")}>
+              Quitar
+            </Button>
+          )}
+        </div>
+      </FormField>
+
       <FormField label="Imagen">
         <div className="flex items-center gap-3">
-          {imagePreview && <img src={imagePreview} alt="" className="h-14 w-14 rounded object-cover" />}
+          {imagePreview && (
+            <img src={imagePreview} alt="" className="h-14 w-14 rounded object-cover" />
+          )}
           <input
             type="file"
             accept="image/*"
