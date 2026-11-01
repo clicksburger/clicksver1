@@ -232,6 +232,104 @@ html:has(.clicks-menu) {
   font-weight: 700;
   transform: rotate(-3deg);
 }
+/* Aviso para volver al seguimiento del pedido en curso. */
+.cm-pedido-en-curso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 1420px;
+  margin: 12px auto;
+  padding: 0 40px;
+  animation: cm-pec-in 0.45s var(--cm-ease) both;
+}
+.cm-pedido-en-curso > a {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid #72d49d66;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #72d49d1f, #1c2a31 60%);
+}
+.cm-pedido-en-curso > a:hover {
+  border-color: #72d49d;
+}
+.cm-pec-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #72d49d;
+  animation: cm-pec-ping 1.8s ease-out infinite;
+}
+.cm-pec-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.cm-pec-text strong {
+  font-size: 15px;
+}
+.cm-pec-text span {
+  color: #b9c2c1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cm-pec-cta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #ffd21c;
+  color: #131e24;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.cm-pedido-en-curso > button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #b9c2c1;
+}
+.cm-pedido-en-curso > button:hover {
+  color: #fff8df;
+  background: #ffffff10;
+}
+@media (max-width: 700px) {
+  .cm-pedido-en-curso {
+    padding: 0 12px;
+    margin: 10px auto;
+  }
+}
+@keyframes cm-pec-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cm-pec-ping {
+  0% {
+    box-shadow: 0 0 0 0 #72d49d99;
+  }
+  80%,
+  100% {
+    box-shadow: 0 0 0 9px #72d49d00;
+  }
+}
 /* Solo la línea amarilla de la marca, sin texto. */
 .cm-brand-strip {
   height: 8px;
@@ -1078,9 +1176,20 @@ html:has(.clicks-menu) {
     gap: 14px;
   }
 }
-/* El carrusel, la tarjeta de la promo y los skeletons se animan siempre (pedido del local). */
+/* El carrusel, la tarjeta de la promo, los skeletons y el seguimiento se animan siempre (pedido del local). */
 @media (prefers-reduced-motion: reduce) {
-  .clicks-menu *:not(.pc, .pc *, .is-promo, .is-promo *, .sk, .sk-img),
+  .clicks-menu
+    *:not(
+      .pc,
+      .pc *,
+      .is-promo,
+      .is-promo *,
+      .sk,
+      .sk-img,
+      .sg *,
+      .cm-pedido-en-curso,
+      .cm-pec-dot
+    ),
   .cm-product-dialog *,
   .cm-checkout *,
   .cm-cart-sheet *,

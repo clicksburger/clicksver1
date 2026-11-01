@@ -1,13 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { Check, CheckCircle2, Copy, Landmark, Loader2, MapPin, MessageCircle } from "lucide-react";
 import { formatPrecio } from "@/lib/format";
 import { MOTIVO_A_CONFIRMAR, aConfirmar, formatKm } from "@/features/envios/tarifas";
 import { ALIAS_TRANSFERENCIA } from "@/constants/business";
+import { guardarUltimoPedido } from "@/features/orders/seguimiento";
 import type { CotizacionEnvio, PedidoItem } from "@/types/domain";
 
 interface Receipt {
+  /** Id del pedido (para el seguimiento). Falta en respuestas de versiones viejas. */
+  id?: string;
   num: number;
   total: number;
   whatsappUrl: string;
@@ -207,6 +211,7 @@ export function CheckoutForm({
         throw new Error(result.error || "No se pudo registrar el pedido.");
       }
       const saved = result as Receipt;
+      if (saved.id) guardarUltimoPedido(saved.id, saved.num);
       attempt.receipt = saved;
       setReceipt(saved);
       onSaved();
@@ -259,9 +264,17 @@ export function CheckoutForm({
         >
           <MessageCircle size={20} /> Abrir WhatsApp
         </a>
+        {receipt.id && (
+          <Link
+            href={`/pedido/${receipt.id}`}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary px-4 py-3 font-bold text-primary"
+          >
+            <MapPin size={18} /> Seguir mi pedido
+          </Link>
+        )}
         <p className="text-xs text-muted">
-          Si WhatsApp no se abrió, usá este botón. Abrirlo otra vez no crea otro pedido. Esperá la
-          confirmación del local.
+          Si WhatsApp no se abrió, usá el botón de WhatsApp: abrirlo otra vez no crea otro pedido.
+          En “Seguir mi pedido” ves cuando el local lo confirma, lo prepara y sale.
         </p>
       </div>
     );

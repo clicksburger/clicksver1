@@ -57,13 +57,16 @@ export async function POST(request: Request) {
       costoEnvio: number | null,
     ) => {
       const phone = (process.env.CLICKS_WHATSAPP_NUMBER ?? "543518737099").replace(/\D/g, "");
+      // El id del pedido es el requestId: solo lo conoce quien hizo el pedido.
+      const seguimientoUrl = `${new URL(request.url).origin}/pedido/${input.requestId}`;
       return NextResponse.json(
         {
+          id: input.requestId,
           num,
           total: totalProductos(items) + (costoEnvio ?? 0),
           costoEnvio,
           envioAConfirmar: tipo === "delivery" && costoEnvio == null,
-          whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(num, nombre, tipo, items, checkout))}`,
+          whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(num, nombre, tipo, items, checkout, seguimientoUrl))}`,
         },
         { headers: { "Cache-Control": "no-store" } },
       );

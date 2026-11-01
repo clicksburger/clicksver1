@@ -127,6 +127,52 @@ const slides = promos.promoSlides([
 ]);
 assert.equal(slides.length, 2); // solo la vigente, con sus dos piezas
 assert.equal(slides[1].src, "/img/promo-cryspy-doble-2.jpg");
+// Seguimiento del pedido: pasos y ventana de entrega.
+const seguimiento = load("src/features/orders/seguimiento.ts");
+const pedidoBase = {
+  id: "x",
+  num: 7,
+  nombre: "Ana",
+  tipo: "delivery",
+  items: [{ nombre: "CRISPY", variante: "Doble", cantidad: 2, precio: 14500 }],
+  costoEnvio: 1500,
+  pago: "transferencia",
+  demora: 30,
+  creadoEn: "2026-10-31T21:47:00-03:00",
+  horaConfirmado: "2026-10-31T21:50:00-03:00",
+  horaEntregado: null,
+  whatsapp: "543518737099",
+};
+// Pasos: enviado → en preparación → listo, saliendo → en camino (5 min después) → entregado.
+const t0 = new Date("2026-10-31T22:10:00-03:00").getTime();
+const pasosEn = (estado, tipo = "delivery", now = t0, horaListo = "2026-10-31T22:08:00-03:00") =>
+  JSON.stringify(
+    seguimiento
+      .pasosSeguimiento({ ...pedidoBase, estado, tipo, horaListo }, now)
+      .map((paso) => paso.estado[0]),
+  );
+assert.equal(pasosEn("nuevo"), JSON.stringify(["a", "p", "p", "p", "p"]));
+assert.equal(pasosEn("en_cocina"), JSON.stringify(["h", "a", "p", "p", "p"]));
+assert.equal(pasosEn("listo"), JSON.stringify(["h", "h", "a", "p", "p"]));
+assert.equal(
+  pasosEn("listo", "delivery", t0 + 3 * 60000),
+  JSON.stringify(["h", "h", "h", "a", "p"]),
+);
+assert.equal(
+  pasosEn("listo", "delivery", t0 + 60 * 60000, null),
+  JSON.stringify(["h", "h", "a", "p", "p"]),
+);
+assert.equal(pasosEn("entregado"), JSON.stringify(["h", "h", "h", "h", "h"]));
+// Retiro: sin "En camino".
+assert.equal(pasosEn("listo", "takeaway", t0 + 60 * 60000), JSON.stringify(["h", "h", "a", "p"]));
+assert.equal(
+  JSON.stringify(seguimiento.ventanaEntrega({ ...pedidoBase, estado: "en_cocina" })),
+  JSON.stringify({ desde: "22:20", hasta: "22:35" }),
+);
+assert.equal(seguimiento.ventanaEntrega({ ...pedidoBase, estado: "nuevo" }), null);
+assert.equal(seguimiento.totalSeguimiento({ ...pedidoBase, estado: "nuevo" }), 30500);
+assert.equal(seguimiento.esFinal("rechazado"), true);
+
 // La pestaña "Promociones" se muestra dentro de Hamburguesas, primera.
 const unidas = promos.unirPromosConHamburguesas([
   { categoria: "Promociones", items: [{ id: "promo" }] },
@@ -247,6 +293,9 @@ assert.ok(
     message.includes("A CONFIRMAR"),
 );
 assert.equal(checkout.readCheckout(rows[0].items).telefono, "3515550100");
+// Seguimiento: el id del pedido es el requestId y el link viaja en el mensaje.
+assert.equal(receipt.id, body.requestId);
+assert.ok(message.includes(`Sigo mi pedido acá: http://localhost:3000/pedido/${body.requestId}`));
 assert.equal((await route.POST(request({ ...body, nombre: "Otro cliente" }))).status, 409);
 assert.equal(rows.length, 1);
 assert.equal((await route.POST(request(body, "https://otra-web.example"))).status, 403);

@@ -9,6 +9,7 @@ import { groupByCategoria } from "../mappers";
 import { MenuItemCard } from "./MenuItemCard";
 import { CartPanel } from "./CartPanel";
 import { PromoCarousel } from "./PromoCarousel";
+import { PedidoEnCurso } from "./PedidoEnCurso";
 import { promoSlides, unirPromosConHamburguesas } from "../promos";
 import { Sheet } from "@/components/ui";
 import { cartCount, cartTotal, useCartStore } from "../store/cart.store";
@@ -127,6 +128,7 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
           </div>
         </div>
       </header>
+      <PedidoEnCurso />
       <section className="cm-hero" aria-label="Clicks Burger">
         <div className="cm-hero-photo-wrap">
           <Image

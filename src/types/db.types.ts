@@ -256,6 +256,7 @@ export type Database = {
           estado: string
           hora_confirmado: string | null
           hora_entregado: string | null
+          hora_listo: string | null
           id: string
           items: Json
           nombre: string | null
@@ -270,6 +271,7 @@ export type Database = {
           estado?: string
           hora_confirmado?: string | null
           hora_entregado?: string | null
+          hora_listo?: string | null
           id?: string
           items?: Json
           nombre?: string | null
@@ -284,6 +286,7 @@ export type Database = {
           estado?: string
           hora_confirmado?: string | null
           hora_entregado?: string | null
+          hora_listo?: string | null
           id?: string
           items?: Json
           nombre?: string | null

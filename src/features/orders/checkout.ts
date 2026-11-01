@@ -100,6 +100,8 @@ export function whatsappMessage(
   tipo: string,
   items: PedidoItem[],
   checkout: CheckoutDetails,
+  /** Link al seguimiento del pedido; se agrega al final del mensaje. */
+  seguimientoUrl?: string,
 ): string {
   const money = (amount: number) =>
     new Intl.NumberFormat("es-AR", {
@@ -154,5 +156,6 @@ export function whatsappMessage(
         ]
       : []),
     "El pedido ya está registrado en el sistema. Quedo a la espera de confirmación del local.",
+    ...(seguimientoUrl ? ["", `Sigo mi pedido acá: ${seguimientoUrl}`] : []),
   ].join("\n");
 }
