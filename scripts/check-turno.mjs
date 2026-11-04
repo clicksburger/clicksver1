@@ -28,7 +28,7 @@ const { outputText } = ts.transpileModule(source, {
 });
 const exported = {};
 vm.runInThisContext(`(function (exports, require) {${outputText}\n})`)(exported, requireTarifas);
-const { ventasDelTurno, turnoCsv, turnoArchivo, totalPedido } = exported;
+const { ventasDelTurno, pendientesDelTurno, turnoCsv, turnoArchivo, totalPedido } = exported;
 
 const item = (nombre, precio, cantidad, extra = {}) => ({
   itemId: nombre,
@@ -111,11 +111,54 @@ assert.equal(row("Transferencia"), '"Transferencia";1;3500');
 assert.equal(row("CHEESEBURGER · Doble"), '"CHEESEBURGER · Doble";2;22000');
 assert.ok(csv.includes('"\'+peligro"') && csv.includes('"\'=HYPERLINK(1)"'), "Neutraliza fórmulas");
 assert.ok(csv.includes("[sin cebolla]"), "Incluye observaciones");
+// Ventas potenciales: pedidos que entraron en el turno y nadie cerró en el sistema.
+const sinFlujo = [
+  pedido(7, "nuevo", null, [item("CRISPY CLICKS", 14500, 1)], "transferencia", {
+    creadoEn: "2026-10-30T23:30:00.000Z",
+  }),
+  pedido(8, "en_cocina", null, [item("PAPAS FRITAS", 3500, 2)], "efectivo", {
+    creadoEn: "2026-10-31T01:30:00.000Z",
+  }),
+  pedido(9, "rechazado", null, [item("Rechazado", 99000, 1)], "efectivo", {
+    creadoEn: "2026-10-31T01:40:00.000Z",
+  }),
+  pedido(10, "nuevo", null, [item("Otro turno", 5000, 1)], "efectivo", {
+    creadoEn: "2026-10-31T06:00:00.000Z",
+  }),
+];
+const pendientes = pendientesDelTurno([...pedidos, ...sinFlujo], abierto, cerrado);
+assert.deepEqual(
+  pendientes.map((p) => p.num),
+  [7, 8],
+  "Sin confirmar o en cocina dentro del turno; sin rechazados ni de otro turno",
+);
+assert.deepEqual(
+  pendientesDelTurno(pedidos, abierto, cerrado).map((p) => p.num),
+  [],
+  "El 4 está listo pero entró antes del turno",
+);
+const csvPotencial = turnoCsv(turno, enTurno, pendientes);
+const lineasP = csvPotencial.slice(1).split("\r\n");
+const filaP = (label) => lineasP.find((l) => l.startsWith(`"${label}"`));
+assert.equal(filaP("Pedidos sin cerrar en el sistema"), '"Pedidos sin cerrar en el sistema";2');
+assert.equal(
+  filaP("Ventas potenciales (entregados + sin cerrar)"),
+  '"Ventas potenciales (entregados + sin cerrar)";52000',
+);
+assert.equal(
+  filaP("Esperado si se cobró todo lo potencial"),
+  '"Esperado si se cobró todo lo potencial";72000',
+);
+assert.ok(csvPotencial.includes('"Sin confirmar"') && csvPotencial.includes('"En cocina"'));
+assert.ok(!csvPotencial.includes("Rechazado"), "Los rechazados no son ventas potenciales");
+// Sin pendientes: el reporte lo aclara y las filas de entregados no cambian.
+assert.ok(csv.includes("Todos los pedidos del turno se cerraron en el sistema."));
+assert.equal(row("Efectivo"), '"Efectivo";2;27000');
 assert.equal(
   turnoArchivo(turno),
   "clicks-turno-2026-10-30_1900.csv",
   "Nombre con hora de Buenos Aires",
 );
 console.log(
-  "Turno: ventas por hora de entrega, totales, formas de pago, productos y Excel verificados.",
+  "Turno: ventas por hora de entrega, ventas potenciales, totales, formas de pago, productos y Excel verificados.",
 );

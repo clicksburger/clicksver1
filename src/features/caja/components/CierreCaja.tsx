@@ -2,7 +2,15 @@
 
 import { Sk } from "@/components/ui/Skeleton";
 import { useCallback, useEffect, useState } from "react";
-import { DoorOpen, DoorClosed, RefreshCw, Wallet, History, Download } from "lucide-react";
+import {
+  AlertTriangle,
+  DoorOpen,
+  DoorClosed,
+  RefreshCw,
+  Wallet,
+  History,
+  Download,
+} from "lucide-react";
 import { Button } from "@/components/ui";
 import { Input, FormField } from "@/components/forms";
 import { cn } from "@/lib/cn";
@@ -14,6 +22,7 @@ import {
   descargarExcelTurno,
   getTurnoAbierto,
   listarTurnos,
+  pendientesActuales,
   ventasActuales,
   type CajaTurno,
 } from "../services/caja.client";
@@ -51,6 +60,8 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
     cantidad: number;
     envios: number;
   } | null>(null);
+  /** Pedidos del turno que nadie cerró en el sistema (ventas potenciales). */
+  const [pendientes, setPendientes] = useState<{ cantidad: number; total: number } | null>(null);
   const [historial, setHistorial] = useState<CajaTurno[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,6 +81,7 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
       const t = await getTurnoAbierto(tenantId);
       setTurno(t);
       setVentas(t ? await ventasActuales(tenantId, t.abierto_en) : null);
+      setPendientes(t ? await pendientesActuales(tenantId, t.abierto_en) : null);
       if (esAdmin) setHistorial(await listarTurnos(tenantId));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al cargar la caja");
@@ -86,6 +98,7 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
     if (!turno) return;
     try {
       setVentas(await ventasActuales(tenantId, turno.abierto_en));
+      setPendientes(await pendientesActuales(tenantId, turno.abierto_en));
     } catch {
       /* ignorar: el botón se puede reintentar */
     }
@@ -217,6 +230,24 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
               <p className="font-bold">{ventas?.cantidad ?? 0}</p>
             </div>
           </div>
+
+          {pendientes && pendientes.cantidad > 0 && (
+            <div className="bg-primary/10 flex items-start gap-3 rounded-lg border border-primary p-3 text-sm">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="flex-1">
+                <p className="font-bold text-text">
+                  Ventas potenciales: {formatPrecio((ventas?.total ?? 0) + pendientes.total)}
+                </p>
+                <p className="text-muted">
+                  {pendientes.cantidad}{" "}
+                  {pendientes.cantidad === 1 ? "pedido entró" : "pedidos entraron"} en el turno y no
+                  se {pendientes.cantidad === 1 ? "cerró" : "cerraron"} en el sistema (
+                  {formatPrecio(pendientes.total)}: sin confirmar, en cocina o listos). Van aparte
+                  en el Excel.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between border-t border-border pt-3">
             <span className="text-muted">Esperado en caja</span>

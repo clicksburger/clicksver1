@@ -1,6 +1,13 @@
 import { createSupabaseBrowserClient } from "@/services/supabase/client";
 import { mapPedido } from "@/features/orders/mappers";
-import { descargarArchivo, turnoArchivo, turnoCsv, ventasDelTurno } from "../turno-report";
+import {
+  descargarArchivo,
+  pendientesDelTurno,
+  totalPedido,
+  turnoArchivo,
+  turnoCsv,
+  ventasDelTurno,
+} from "../turno-report";
 import type { Database } from "@/types/db.types";
 import type { Pedido } from "@/types/domain";
 
@@ -80,15 +87,15 @@ export async function cerrarCaja(
 }
 
 /**
- * Pedidos entregados durante un turno. Se trae desde un día antes de la
- * apertura (un pedido puede entrar antes y entregarse en el turno) y se filtra
- * por la hora de entrega, el mismo criterio que caja_ventas.
+ * Pedidos del turno: los entregados (por hora de entrega, el mismo criterio
+ * que caja_ventas) y los que entraron en el turno pero nadie cerró en el
+ * sistema (sin confirmar, en cocina o listos) = ventas potenciales.
  */
-export async function pedidosEntregadosDelTurno(
+export async function pedidosDelTurno(
   tenantId: string,
   desde: string,
   hasta: string | null,
-): Promise<Pedido[]> {
+): Promise<{ entregados: Pedido[]; pendientes: Pedido[] }> {
   const supabase = createSupabaseBrowserClient();
   const from = new Date(new Date(desde).getTime() - 86400000).toISOString();
   const until = hasta ?? new Date().toISOString();
@@ -98,7 +105,7 @@ export async function pedidosEntregadosDelTurno(
       .from("pedidos")
       .select("*")
       .eq("tenant_id", tenantId)
-      .eq("estado", "entregado")
+      .in("estado", ["entregado", "nuevo", "confirmado", "en_cocina", "listo"])
       .gte("creado_en", from)
       .lte("creado_en", until)
       .order("num")
@@ -107,13 +114,29 @@ export async function pedidosEntregadosDelTurno(
     rows.push(...(data ?? []).map(mapPedido));
     if (!data || data.length < 500) break;
   }
-  return ventasDelTurno(rows, desde, hasta);
+  return {
+    entregados: ventasDelTurno(rows, desde, hasta),
+    pendientes: pendientesDelTurno(rows, desde, hasta),
+  };
 }
 
-/** Descarga el Excel (CSV) de un turno: resumen, formas de pago, productos y detalle. */
+/** Pedidos del turno sin cerrar en el sistema: cantidad y total (ventas potenciales). */
+export async function pendientesActuales(tenantId: string, desde: string) {
+  const { pendientes } = await pedidosDelTurno(tenantId, desde, null);
+  return {
+    cantidad: pendientes.length,
+    total: pendientes.reduce((sum, p) => sum + totalPedido(p), 0),
+  };
+}
+
+/** Descarga el Excel (CSV) de un turno: resumen, ventas potenciales, pagos, productos y detalle. */
 export async function descargarExcelTurno(tenantId: string, turno: CajaTurno) {
-  const entregados = await pedidosEntregadosDelTurno(tenantId, turno.abierto_en, turno.cerrado_en);
-  descargarArchivo(turnoArchivo(turno), turnoCsv(turno, entregados));
+  const { entregados, pendientes } = await pedidosDelTurno(
+    tenantId,
+    turno.abierto_en,
+    turno.cerrado_en,
+  );
+  descargarArchivo(turnoArchivo(turno), turnoCsv(turno, entregados, pendientes));
 }
 
 /** Historial de turnos cerrados (para el admin). */
