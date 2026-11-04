@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Check, ChevronRight, Plus, Sparkles } from "lucide-react";
+import { Ban, Check, ChevronRight, Plus } from "lucide-react";
 import { formatPrecio } from "@/lib/format";
-import { diasRestantes, textoVigencia, type PromoSlide } from "../promos";
+import { diasRestantes, textoVigencia } from "../promos";
+import type { SlideCarrusel } from "../carrusel";
+import { PosterPromo } from "./PosterPromo";
 import type { MenuItem } from "@/types/domain";
 import "./promo-carousel.css";
 
@@ -63,7 +65,7 @@ export function PromoCarousel({
   onAdd,
   onShow,
 }: {
-  slides: PromoSlide[];
+  slides: SlideCarrusel[];
   /** Agrega al pedido un producto sin opciones. */
   onAdd: (item: MenuItem) => void;
   /** Lleva al producto cuando hay que elegir opciones (simple, doble, triple…). */
@@ -135,11 +137,14 @@ export function PromoCarousel({
     delete deck.dataset.tilting;
   }
 
-  const item = slides[active]!.item;
+  const actual = slides[active]!;
+  const item = actual.item;
+  const disponible = actual.disponible;
   const dias = diasRestantes(item.vigenteHasta);
   const justAdded = added === item.id;
+  // La cinta solo anuncia lo que se puede pedir hoy.
   const uniqueItems = slides.filter(
-    (slide, i) => slides.findIndex((s) => s.item.id === slide.item.id) === i,
+    (slide, i) => slide.disponible && slides.findIndex((s) => s.item.id === slide.item.id) === i,
   );
 
   return (
@@ -232,7 +237,9 @@ export function PromoCarousel({
                 >
                   <div className="pc-card-float">
                     <div className="pc-card-tilt">
-                      <div className="pc-card-face sk-img">
+                      <div
+                        className={`pc-card-face ${slide.src ? "sk-img" : ""} ${slide.disponible ? "" : "is-off"}`}
+                      >
                         {slide.src ? (
                           <Image
                             src={slide.src}
@@ -247,8 +254,13 @@ export function PromoCarousel({
                             }}
                           />
                         ) : (
-                          <span className="pc-card-empty">
-                            <Sparkles size={32} />
+                          <PosterPromo item={slide.item} etiqueta={slide.etiquetaCorta} />
+                        )}
+                        {!slide.disponible && (
+                          <span className="pc-off" aria-hidden="true">
+                            <b>
+                              <Ban size={16} /> No disponible
+                            </b>
                           </span>
                         )}
                         <span className="pc-glare" aria-hidden="true" />
@@ -269,23 +281,41 @@ export function PromoCarousel({
           aria-roledescription="diapositiva"
           aria-label={`${active + 1} de ${total}: ${item.nombre}`}
         >
-          <span className={`pc-chip ${dias === 1 ? "is-last" : ""}`}>
+          <span className={`pc-chip ${!disponible ? "is-expired" : dias === 1 ? "is-last" : ""}`}>
             <i aria-hidden="true" />
-            <span className="pc-chip-label">Promo · </span>
-            {textoVigencia(item.vigenteHasta)}
+            {!disponible ? (
+              "No disponible por ahora"
+            ) : item.vigenteHasta ? (
+              <>
+                <span className="pc-chip-label">Promo · </span>
+                {textoVigencia(item.vigenteHasta)}
+              </>
+            ) : (
+              <>
+                <span className="pc-chip-largo">{actual.etiqueta ?? "Destacada de Clicks"}</span>
+                <span className="pc-chip-corto">
+                  {actual.etiquetaCorta ?? actual.etiqueta ?? "Destacada"}
+                </span>
+              </>
+            )}
           </span>
           <h3>{item.nombre}</h3>
           {item.descripcion && <p>{item.descripcion}</p>}
-          <strong className="pc-price">
+          <strong className={`pc-price ${disponible ? "" : "is-off"}`}>
             <PrecioGrande item={item} />
           </strong>
           <div className="pc-actions">
             <button
               type="button"
-              className={`pc-cta ${justAdded ? "is-added" : ""}`}
+              className={`pc-cta ${justAdded ? "is-added" : ""} ${disponible ? "" : "is-off"}`}
               onClick={() => add(item)}
+              disabled={!disponible}
             >
-              {justAdded ? (
+              {!disponible ? (
+                <>
+                  <Ban size={18} /> No disponible
+                </>
+              ) : justAdded ? (
                 <>
                   <Check size={18} /> ¡Agregada!
                 </>

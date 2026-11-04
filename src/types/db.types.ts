@@ -329,6 +329,7 @@ export type Database = {
           color_surface: string
           color_texto: string
           creado_en: string
+          carrusel_config: Json | null
           envio_config: Json | null
           horarios: Json | null
           id: string
@@ -345,6 +346,7 @@ export type Database = {
           color_surface?: string
           color_texto?: string
           creado_en?: string
+          carrusel_config?: Json | null
           envio_config?: Json | null
           horarios?: Json | null
           id?: string
@@ -361,6 +363,7 @@ export type Database = {
           color_surface?: string
           color_texto?: string
           creado_en?: string
+          carrusel_config?: Json | null
           envio_config?: Json | null
           horarios?: Json | null
           id?: string

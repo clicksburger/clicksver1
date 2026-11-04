@@ -363,3 +363,78 @@
     display: none !important;
   }
 }
+
+/* ── Selector rápido del carrusel de la carta (caja) ── */
+.ops-carrusel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: auto;
+}
+.ops-carrusel-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+.ops-carrusel-label b {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  font-size: 11px;
+  transition: background-color 0.2s;
+}
+.ops-carrusel-label b.is-promo {
+  background: var(--color-primary);
+  color: var(--color-bg);
+}
+.ops-carrusel-options {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+.ops-carrusel-options button {
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-muted);
+  transition:
+    background-color 0.18s,
+    color 0.18s,
+    transform 0.18s;
+}
+.ops-carrusel-options button:hover:not(.is-active):not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+.ops-carrusel-options button.is-active {
+  background: var(--color-primary);
+  color: var(--color-bg);
+}
+.ops-carrusel-options button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.ops-carrusel[aria-busy="true"] .ops-carrusel-options {
+  opacity: 0.7;
+}
+.ops-carrusel-error {
+  max-width: 280px;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+@media (max-width: 700px) {
+  .ops-carrusel {
+    margin-left: 0;
+    width: 100%;
+  }
+  .ops-carrusel-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

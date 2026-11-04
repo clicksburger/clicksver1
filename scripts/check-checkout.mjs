@@ -261,7 +261,62 @@ class Query {
   }
 }
 const db = { from: (table) => new Query(table) };
+const carrusel = load("src/features/menu/carrusel.ts", { "./promos": promos });
+// Carrusel gestionable: modo, días de promo y disponibilidad del día.
+{
+  const martes = new Date("2026-11-03T21:00:00-03:00");
+  const lunes = new Date("2026-11-02T21:00:00-03:00");
+  const madrugadaJueves = new Date("2026-11-06T02:00:00-03:00"); // sigue siendo jueves comercial
+  assert.equal(carrusel.diaSemana(martes), 2);
+  assert.equal(carrusel.diaSemana(madrugadaJueves), 4);
+  const config = carrusel.carruselConfigFromJson({
+    modo: "auto",
+    diasPromo: [2, 3, 4, 9, "x"],
+    promo: ["p2x"],
+    normal: ["halloween"],
+  });
+  assert.equal(JSON.stringify(config.diasPromo), JSON.stringify([2, 3, 4]));
+  assert.equal(carrusel.promoDelDiaActiva(config, martes), true);
+  assert.equal(carrusel.promoDelDiaActiva(config, lunes), false);
+  assert.equal(carrusel.promoDelDiaActiva({ ...config, modo: "promo" }, lunes), true);
+  assert.equal(carrusel.promoDelDiaActiva({ ...config, modo: "normal" }, martes), false);
+  assert.equal(carrusel.textoDias([4, 2, 3]), "Martes, miércoles y jueves");
+  const base = {
+    activo: true,
+    destacado: false,
+    vigenteHasta: null,
+    variantes: [],
+    imagenUrl: null,
+  };
+  const p2x = { ...base, id: "p2x", nombre: "PROMO 2 BURGERS" };
+  const halloween = {
+    ...base,
+    id: "halloween",
+    nombre: "CRYSPY DOBLE + BONIATOS",
+    vigenteHasta: "2026-11-01",
+    imagenUrl: "/img/promo-cryspy-doble.jpg",
+  };
+  const cheese = { ...base, id: "cheese", nombre: "CHEESEBURGER" };
+  // La 2x solo se vende con la promo activa; la Halloween venció; el resto siempre.
+  assert.equal(carrusel.disponibleHoy(p2x, config, martes), true);
+  assert.equal(carrusel.disponibleHoy(p2x, config, lunes), false);
+  assert.equal(carrusel.disponibleHoy(halloween, config, lunes), false);
+  assert.equal(carrusel.disponibleHoy(cheese, config, lunes), true);
+  const todos = [p2x, halloween, cheese];
+  const slidesMartes = carrusel.slidesCarrusel(todos, config, martes);
+  assert.equal(slidesMartes.length, 1);
+  assert.equal(slidesMartes[0].item.id, "p2x");
+  assert.equal(slidesMartes[0].disponible, true);
+  assert.equal(slidesMartes[0].etiqueta, "Martes, miércoles y jueves");
+  const slidesLunes = carrusel.slidesCarrusel(todos, config, lunes);
+  assert.equal(slidesLunes.length, 2); // los dos flyers de Halloween
+  assert.equal(
+    slidesLunes.every((slide) => slide.item.id === "halloween" && !slide.disponible),
+    true,
+  );
+}
 const route = load("src/app/api/checkout/route.ts", {
+  "@/features/menu/carrusel": carrusel,
   "@/services/supabase/admin": { createSupabaseAdminClient: () => db },
   "@/constants/business": { BUSINESS_SLUG: "clicks-burger" },
   "@/features/orders/checkout": checkout,

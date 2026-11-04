@@ -12,6 +12,7 @@ import {
 import { mapMenu } from "@/features/menu/mappers";
 import { mapTenant } from "@/features/tenants/mappers";
 import { estaAbierto } from "@/features/tenants/horarios";
+import { carruselConfigFromJson, disponibleHoy } from "@/features/menu/carrusel";
 import { cotizarEnvio } from "@/features/envios/cotizar.server";
 import { totalProductos } from "@/features/envios/tarifas";
 import type { CheckoutDetails, CotizacionEnvio, PedidoItem } from "@/types/domain";
@@ -113,9 +114,13 @@ export async function POST(request: Request) {
       return respondError("No se pudo verificar la carta. Intentá nuevamente.", 503);
     let priced: PedidoItem[];
     try {
+      // La promo del día (ej. 2x) solo se vende cuando está activa.
+      const carrusel = carruselConfigFromJson(tenant.carrusel_config ?? null);
       priced = priceCheckout(
         input,
-        mapMenu(products.data ?? [], variants.data ?? [], categories.data ?? []),
+        mapMenu(products.data ?? [], variants.data ?? [], categories.data ?? []).filter((item) =>
+          disponibleHoy(item, carrusel),
+        ),
       );
     } catch (error) {
       return respondError(error instanceof Error ? error.message : "Revisá el carrito.", 409);

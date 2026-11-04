@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { formatPrecio } from "@/lib/format";
 import { useCartStore } from "../store/cart.store";
 import { textoVigencia } from "../promos";
+import { PosterPromo } from "./PosterPromo";
 import type { MenuItem } from "@/types/domain";
 
 type Layout = "overlay" | "compact";
@@ -48,9 +49,12 @@ function optimizable(src: string) {
 export const MenuItemCard = memo(function MenuItemCard({
   item,
   layout = "overlay",
+  resaltada = false,
 }: {
   item: MenuItem;
   layout?: Layout;
+  /** Promo del día activa: tarjeta ancha y resaltada como las promos con fecha. */
+  resaltada?: boolean;
 }) {
   const add = useCartStore((s) => s.add);
   const [added, flash] = useJustAdded();
@@ -61,7 +65,7 @@ export const MenuItemCard = memo(function MenuItemCard({
 
   const hasVariants = item.variantes.length > 0;
   /** Promo con fecha (ej. Cryspy negra): tarjeta ancha y resaltada dentro de su categoría. */
-  const isPromo = item.destacado && !!item.vigenteHasta;
+  const isPromo = resaltada || (item.destacado && !!item.vigenteHasta);
   const isDip = item.nombre.trim().toUpperCase() === "DIP DE SALSAS";
   const chosen = item.variantes.filter((variant) => selected.includes(variant.id));
   const selectedPrice = isDip
@@ -121,6 +125,9 @@ export const MenuItemCard = memo(function MenuItemCard({
         className={className}
         onLoad={marcarCargada}
       />
+    ) : isPromo && item.variantes.length ? (
+      // Promo sin foto (ej. 2x): la misma pieza diseñada del carrusel, en chico.
+      <PosterPromo item={item} />
     ) : (
       <div className={cn("flex items-center justify-center bg-surface2 text-muted", className)}>
         <div className="flex flex-col items-center gap-2">
@@ -239,6 +246,7 @@ export const MenuItemCard = memo(function MenuItemCard({
     return (
       <>
         <article
+          id={`producto-${item.id}`}
           className={`cm-product-card ${isPromo ? "is-promo" : ""} ${added ? "cm-just-added" : ""}`}
         >
           <button
@@ -255,8 +263,14 @@ export const MenuItemCard = memo(function MenuItemCard({
             {isPromo && (
               <span className="cm-promo-tag">
                 <i aria-hidden="true" />
-                <span className="cm-promo-tag-label">Promo · </span>
-                {textoVigencia(item.vigenteHasta)}
+                {item.vigenteHasta ? (
+                  <>
+                    <span className="cm-promo-tag-label">Promo · </span>
+                    {textoVigencia(item.vigenteHasta)}
+                  </>
+                ) : (
+                  "Promo del día"
+                )}
               </span>
             )}
             <div className="cm-card-heading">

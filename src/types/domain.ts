@@ -1,5 +1,6 @@
 import type { EstadoPedido } from "@/constants/order-states";
 import type { RolStaff } from "@/constants/roles";
+import type { CarruselConfig } from "@/features/menu/carrusel";
 
 export interface Tenant {
   id: string;
@@ -12,6 +13,8 @@ export interface Tenant {
   logoUrl: string | null;
   activo: boolean;
   horarios: HorarioDia[] | null;
+  /** Carrusel de la carta: modo del día y productos de cada carrusel. */
+  carrusel: CarruselConfig;
   envio: EnvioConfig | null;
 }
 

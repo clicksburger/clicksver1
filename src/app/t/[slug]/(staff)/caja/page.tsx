@@ -14,5 +14,5 @@ export default async function CajaPage({ params }: { params: Promise<{ slug: str
   if (!session) redirect(routes.login(slug));
   if (!ACCESO_SECCION.caja.includes(session.rol)) redirect(routes.dashboard(slug));
 
-  return <CajaBoard tenantId={tenant.id} slug={slug} />;
+  return <CajaBoard tenantId={tenant.id} slug={slug} carrusel={tenant.carrusel} />;
 }

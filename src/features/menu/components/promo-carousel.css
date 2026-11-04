@@ -504,7 +504,8 @@ tiñe el escenario. */
     width: 6px;
     height: 6px;
   }
-  .pc-chip-label {
+  .pc-chip-label,
+  .pc-chip-largo {
     display: none;
   }
   .pc-copy h3 {
@@ -620,5 +621,202 @@ tiñe el escenario. */
   }
   100% {
     transform: scale(1);
+  }
+}
+
+/* En pantallas anchas va el texto largo del chip; en celular, el corto. */
+.pc-chip-corto {
+  display: none;
+}
+@media (max-width: 700px) {
+  .pc-chip-corto {
+    display: inline;
+  }
+}
+
+/* ── Pieza diseñada para promos sin foto (ej. 2x). Escala con la pieza (cqw/cqh). ── */
+.pc-poster {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container: poster / size;
+  color: var(--pc-coal, #131e24);
+  background:
+    radial-gradient(circle at 50% 34%, #fff3a6 0%, transparent 55%),
+    radial-gradient(#131e2414 1.2px, transparent 1.2px) 0 0 / 9px 9px,
+    linear-gradient(170deg, #ffd21c 0%, #ffb400 100%);
+}
+.pc-poster-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6cqw 5cqw 0;
+  text-align: center;
+}
+.pc-poster-dias {
+  padding: 1.6cqw 4cqw;
+  border-radius: 999px;
+  background: #131e24;
+  color: #ffd21c;
+  font-size: 5.4cqw;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pc-poster-big {
+  margin-top: 2cqh;
+  font-family: var(--font-anton), var(--font-lato), sans-serif;
+  font-size: 42cqw;
+  font-weight: 400;
+  line-height: 0.9;
+  color: #e8641c;
+  text-shadow: 0 1.6cqw 0 #131e24;
+  animation: pc-poster-beat 2.4s ease-in-out infinite;
+}
+.pc-poster-big small {
+  font-size: 0.45em;
+}
+.pc-poster-name,
+.pc-poster-sub {
+  font-family: var(--font-anton), var(--font-lato), sans-serif;
+  font-weight: 400;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.pc-poster-name {
+  margin-top: 8cqh;
+  font-size: 11cqw;
+}
+.pc-poster-sub {
+  font-size: 8.5cqw;
+  letter-spacing: 0.04em;
+}
+.pc-poster-list {
+  list-style: none;
+  width: 100%;
+  margin: 4cqh 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2cqw;
+}
+.pc-poster-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2cqw;
+  padding: 2.2cqw 3.6cqw;
+  border-radius: 3.4cqw;
+  background: #131e24;
+  color: #fff8df;
+  font-size: 5cqw;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pc-poster-list b {
+  font-family: var(--font-anton), var(--font-lato), sans-serif;
+  font-weight: 400;
+  font-size: 1.2em;
+  color: #ffd21c;
+}
+.pc-poster-price {
+  margin-top: 6cqh;
+  font-family: var(--font-anton), var(--font-lato), sans-serif;
+  font-size: 15cqw;
+  font-weight: 400;
+}
+.pc-poster-mascot {
+  margin-top: auto;
+  width: 68%;
+  height: auto;
+  filter: drop-shadow(0 8px 10px #0005);
+}
+/* Pieza casi cuadrada (tarjeta de la grilla): sin mascota, más compacta. */
+@container poster (min-aspect-ratio: 3 / 4) {
+  .pc-poster-mascot {
+    display: none;
+  }
+  .pc-poster-inner {
+    justify-content: center;
+    padding-top: 4cqw;
+  }
+  .pc-poster-big {
+    margin-top: 0;
+    font-size: 34cqw;
+  }
+  .pc-poster-list {
+    margin-top: 3cqh;
+  }
+}
+
+/* ── Pieza no disponible: apagada, difuminada y con cruz ── */
+.pc-card-face.is-off > :not(.pc-off):not(.pc-glare) {
+  filter: grayscale(0.85) blur(1.5px) brightness(0.6);
+}
+.pc-off {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.pc-off::before,
+.pc-off::after {
+  content: "";
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 50%;
+  height: 5px;
+  border-radius: 5px;
+  background: #ff6b5a;
+  box-shadow: 0 0 12px #ff6b5a99;
+  transform: rotate(-58deg);
+}
+.pc-off::after {
+  transform: rotate(58deg);
+}
+.pc-off b {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 2px solid #ff6b5a;
+  border-radius: 8px;
+  background: #131e24e6;
+  color: #ffb0a6;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+}
+.pc-price.is-off {
+  color: var(--pc-muted);
+  text-shadow: none;
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+  opacity: 0.7;
+}
+.pc-cta.is-off,
+.pc-cta.is-off:hover {
+  background: #2d414a;
+  color: var(--pc-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+@keyframes pc-poster-beat {
+  0%,
+  100% {
+    transform: scale(1) rotate(-3deg);
+  }
+  50% {
+    transform: scale(1.06) rotate(2deg);
   }
 }

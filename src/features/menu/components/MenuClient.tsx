@@ -10,7 +10,8 @@ import { MenuItemCard } from "./MenuItemCard";
 import { CartPanel } from "./CartPanel";
 import { PromoCarousel } from "./PromoCarousel";
 import { PedidoEnCurso } from "./PedidoEnCurso";
-import { promoSlides, unirPromosConHamburguesas } from "../promos";
+import { unirPromosConHamburguesas } from "../promos";
+import type { SlideCarrusel } from "../carrusel";
 import { Sheet } from "@/components/ui";
 import { cartCount, cartTotal, useCartStore } from "../store/cart.store";
 import { estaAbierto, DIAS } from "@/features/tenants/horarios";
@@ -31,9 +32,20 @@ function mascotaDe(categoria: string) {
   return null;
 }
 
-export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[] }) {
+export function MenuClient({
+  tenant,
+  items,
+  slides,
+  resaltados,
+}: {
+  tenant: Tenant;
+  items: MenuItem[];
+  /** Carrusel del día (armado en el servidor según el modo que eligió el local). */
+  slides: SlideCarrusel[];
+  /** Productos de la promo del día activa: su tarjeta se resalta en la grilla. */
+  resaltados: string[];
+}) {
   const groups = useMemo(() => unirPromosConHamburguesas(groupByCategoria(items)), [items]);
-  const slides = useMemo(() => promoSlides(items), [items]);
   const addToCart = useCartStore((state) => state.add);
   /** "Elegí tu burger" apunta a Hamburguesas aunque Promociones vaya primero. */
   const burgersIndex = Math.max(
@@ -90,6 +102,18 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
     }
     setActive(index);
     revealButton(index);
+  }
+  /** Lleva la vista a la tarjeta del producto (al venir del carrusel) y la ilumina un momento. */
+  function spotlight(id: string) {
+    requestAnimationFrame(() => {
+      const card = document.getElementById(`producto-${id}`);
+      if (!card) return;
+      card.scrollIntoView({ behavior: motion(), block: "center" });
+      card.classList.remove("is-spotlight");
+      void card.offsetWidth; // reinicia la animación si se repite
+      card.classList.add("is-spotlight");
+      setTimeout(() => card.classList.remove("is-spotlight"), 2200);
+    });
   }
   function showCart() {
     if (window.matchMedia("(min-width: 1200px)").matches) scrollTo("clicks-cart");
@@ -174,14 +198,15 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
             precio: item.precio ?? 0,
           })
         }
-        onShow={(item) =>
+        onShow={(item) => {
           choose(
             Math.max(
               0,
               groups.findIndex((group) => group.items.some((i) => i.id === item.id)),
             ),
-          )
-        }
+          );
+          spotlight(item.id);
+        }}
       />
       <nav
         ref={navRef}
@@ -270,7 +295,12 @@ export function MenuClient({ tenant, items }: { tenant: Tenant; items: MenuItem[
                   </header>
                   <div className="cm-product-grid">
                     {group.items.map((item) => (
-                      <MenuItemCard key={item.id} item={item} layout="compact" />
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        layout="compact"
+                        resaltada={resaltados.includes(item.id)}
+                      />
                     ))}
                   </div>
                 </section>

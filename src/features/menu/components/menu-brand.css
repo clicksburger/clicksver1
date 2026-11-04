@@ -1176,33 +1176,13 @@ html:has(.clicks-menu) {
     gap: 14px;
   }
 }
-/* El carrusel, la tarjeta de la promo, los skeletons y el seguimiento se animan siempre (pedido del local). */
+/* El local pidió ver las animaciones aunque Windows tenga los efectos apagados:
+   con "reducir movimiento" solo se quita el scroll suave. */
 @media (prefers-reduced-motion: reduce) {
-  .clicks-menu
-    *:not(
-      .pc,
-      .pc *,
-      .is-promo,
-      .is-promo *,
-      .sk,
-      .sk-img,
-      .sg *,
-      .cm-pedido-en-curso,
-      .cm-pec-dot
-    ),
-  .cm-product-dialog *,
-  .cm-checkout *,
-  .cm-cart-sheet *,
-  .cm-product-dialog,
-  .cm-checkout,
-  .cm-modal-backdrop {
-    animation: none !important;
-    transition: none !important;
+  .clicks-menu,
+  .clicks-menu *,
+  .cm-product-dialog * {
     scroll-behavior: auto !important;
-  }
-  .cm-product-card:hover .cm-card-photo,
-  .cm-card-image:hover .cm-card-photo {
-    transform: none;
   }
 }
 
@@ -1388,5 +1368,191 @@ html:has(.clicks-menu) {
   .cm-product-card.is-promo .cm-card-add {
     flex: 1;
     min-width: 0;
+  }
+}
+
+/* ── Vida en la carta: tarjetas, categorías y elección ── */
+.cm-product-card {
+  position: relative;
+  overflow: hidden;
+}
+/* Entrada escalonada al abrir una categoría ("backwards": no pisa el hover después). */
+.cm-category-content:not([hidden]) .cm-product-card {
+  animation: cm-card-in 0.5s var(--cm-ease) backwards;
+}
+.cm-category-content:not([hidden]) .cm-product-card.is-promo {
+  animation:
+    cm-card-in 0.5s var(--cm-ease) backwards,
+    cm-promo-border 5s linear infinite;
+}
+.cm-product-grid > :nth-child(2) {
+  animation-delay: 0.05s;
+}
+.cm-product-grid > :nth-child(3) {
+  animation-delay: 0.1s;
+}
+.cm-product-grid > :nth-child(4) {
+  animation-delay: 0.15s;
+}
+.cm-product-grid > :nth-child(5) {
+  animation-delay: 0.2s;
+}
+.cm-product-grid > :nth-child(6) {
+  animation-delay: 0.25s;
+}
+.cm-product-grid > :nth-child(n + 7) {
+  animation-delay: 0.3s;
+}
+/* Brillo que cruza la tarjeta al pasar el mouse. */
+.cm-product-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, #fff8df17 50%, transparent 65%);
+  transform: translateX(-120%);
+}
+.cm-card-add > svg {
+  transition: transform 0.3s var(--cm-ease);
+}
+@media (hover: hover) {
+  .cm-product-card {
+    transition:
+      transform 0.28s var(--cm-ease),
+      box-shadow 0.28s,
+      border-color 0.2s,
+      background-color 0.2s;
+  }
+  .cm-product-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 20px 36px -20px #000,
+      0 0 0 1px #ffd21c55;
+  }
+  .cm-product-card:hover::after {
+    transform: translateX(120%);
+    transition: transform 0.9s var(--cm-ease);
+  }
+  .cm-product-card:hover .cm-card-add > svg {
+    transform: rotate(90deg) scale(1.15);
+  }
+  .cm-product-card:hover .cm-card-price {
+    color: #fff8df;
+  }
+}
+.cm-product-card:active {
+  transform: translateY(-1px) scale(0.99);
+}
+/* Al agregar: la foto rebota y el botón se infla. */
+.cm-just-added .cm-card-image {
+  animation: cm-added-photo 0.5s var(--cm-ease);
+}
+.cm-just-added .cm-card-add {
+  animation: cm-added-btn 0.45s var(--cm-ease);
+}
+/* Al venir del carrusel: la tarjeta se ilumina un momento. */
+.cm-product-card.is-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 3px #ffd21c;
+  animation: cm-spotlight 2.2s ease-out both;
+}
+
+/* Categorías: se elevan al pasar y la elegida "salta". */
+.cm-category-buttons button {
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    color 0.18s,
+    transform 0.2s var(--cm-ease),
+    box-shadow 0.2s;
+}
+.cm-category-buttons button:hover:not([aria-pressed="true"]) {
+  transform: translateY(-2px);
+}
+.cm-category-buttons button[aria-pressed="true"] {
+  animation: cm-pill-pop 0.35s var(--cm-ease);
+  box-shadow: 0 6px 16px -6px #ffd21c88;
+}
+.cm-category-buttons button[aria-pressed="true"] > span {
+  opacity: 1;
+  animation: cm-badge-bump 0.4s var(--cm-ease);
+}
+
+/* Elección en el detalle: la opción marcada se destaca y el botón avisa que ya se puede. */
+.cm-detail-options label:hover {
+  transform: translateX(3px);
+}
+.cm-detail-options label:has(input:checked) {
+  box-shadow: inset 0 0 0 1px #ffd21c;
+  animation: cm-opt-pick 0.3s var(--cm-ease);
+}
+.cm-detail-options label:has(input:checked) .font-display {
+  color: #fff8df;
+}
+.cm-detail-submit:not(:disabled) {
+  animation: cm-submit-ready 0.5s var(--cm-ease);
+}
+.cm-detail-photo img {
+  transition: transform 0.6s var(--cm-ease);
+}
+.cm-detail-photo:hover img {
+  transform: scale(1.05);
+}
+
+@keyframes cm-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+}
+@keyframes cm-added-photo {
+  40% {
+    transform: scale(1.08) rotate(-2deg);
+  }
+}
+@keyframes cm-added-btn {
+  40% {
+    transform: scale(1.1);
+  }
+}
+@keyframes cm-spotlight {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  70% {
+    opacity: 1;
+    box-shadow:
+      inset 0 0 0 3px #ffd21c,
+      0 0 30px #ffd21c66;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cm-pill-pop {
+  40% {
+    transform: scale(1.07);
+  }
+}
+@keyframes cm-badge-bump {
+  40% {
+    transform: scale(1.35);
+  }
+}
+@keyframes cm-opt-pick {
+  40% {
+    transform: translateX(6px) scale(1.02);
+  }
+}
+@keyframes cm-submit-ready {
+  40% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 6px #ffd21c33;
   }
 }

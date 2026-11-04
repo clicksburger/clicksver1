@@ -10,10 +10,10 @@ export const menuTag = (tenantId: string) => `menu:${tenantId}`;
 /**
  * Menú activo de un tenant (items + variantes + categorías). Cacheado entre
  * requests (revalida cada 30s o al invalidar el tag), con cliente público.
- * Las promos vencidas se filtran fuera de la caché, en cada render.
+ * Incluye promos vencidas: el carrusel las muestra como "No disponible".
  */
-export async function getMenu(tenantId: string): Promise<MenuItem[]> {
-  const items = await unstable_cache(
+export function getMenuActivo(tenantId: string): Promise<MenuItem[]> {
+  return unstable_cache(
     async () => {
       const supabase = createSupabasePublicClient();
       const [itemsRes, variantsRes, catsRes] = await Promise.all([
@@ -32,5 +32,10 @@ export async function getMenu(tenantId: string): Promise<MenuItem[]> {
     ["menu-by-tenant", tenantId],
     { revalidate: 30, tags: [menuTag(tenantId)] },
   )();
+}
+
+/** Menú activo sin promos vencidas (se filtran fuera de la caché, en cada render). */
+export async function getMenu(tenantId: string): Promise<MenuItem[]> {
+  const items = await getMenuActivo(tenantId);
   return items.filter((item) => estaVigente(item));
 }

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { TenantProvider } from "@/contexts/TenantContext";
 import { getTenantBySlug } from "@/features/tenants/services/tenants.service";
 import { brandingVars } from "@/features/tenants/branding";
-import { getMenu } from "@/features/menu/services/menu.service";
+import { getMenuActivo } from "@/features/menu/services/menu.service";
+import { disponibleHoy, promoDelDiaActiva, slidesCarrusel } from "@/features/menu/carrusel";
 import { MenuClient } from "@/features/menu/components/MenuClient";
 import { BUSINESS_SLUG } from "@/constants/business";
 
@@ -20,11 +21,16 @@ export const metadata: Metadata = {
 export default async function Home() {
   const tenant = await getTenantBySlug(BUSINESS_SLUG);
   if (!tenant) notFound();
-  const items = await getMenu(tenant.id);
+  const todos = await getMenuActivo(tenant.id);
+  // Carta y carrusel del día: la promo del día solo aparece (y se vende) cuando está activa.
+  const now = new Date();
+  const items = todos.filter((item) => disponibleHoy(item, tenant.carrusel, now));
+  const slides = slidesCarrusel(todos, tenant.carrusel, now);
+  const resaltados = promoDelDiaActiva(tenant.carrusel, now) ? tenant.carrusel.promo : [];
   return (
     <TenantProvider tenant={tenant}>
       <div style={brandingVars(tenant)} className="clicks-app min-h-screen bg-bg text-text">
-        <MenuClient tenant={tenant} items={items} />
+        <MenuClient tenant={tenant} items={items} slides={slides} resaltados={resaltados} />
       </div>
     </TenantProvider>
   );

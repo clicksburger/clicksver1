@@ -1,5 +1,7 @@
 "use client";
 
+import { ModoCarruselSwitch } from "@/features/menu/components/ModoCarruselSwitch";
+import type { CarruselConfig } from "@/features/menu/carrusel";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -63,7 +65,16 @@ function ConfirmarNuevo({
   );
 }
 
-export function CajaBoard({ tenantId, slug }: { tenantId: string; slug: string }) {
+export function CajaBoard({
+  tenantId,
+  slug,
+  carrusel,
+}: {
+  tenantId: string;
+  slug: string;
+  /** Carrusel de la carta: los chicos eligen promo o normal desde acá. */
+  carrusel: CarruselConfig;
+}) {
   const { pedidos, cambiarEstado, eliminar, editar } = useOrders(tenantId);
   const [tab, setTab] = useState<TabKey>("entrantes");
   const [editando, setEditando] = useState<Pedido | null>(null);
@@ -145,6 +156,7 @@ export function CajaBoard({ tenantId, slug }: { tenantId: string; slug: string }
           <h1>Caja y despacho</h1>
           <p>Confirmá pedidos, coordiná la cocina y entregá los que están listos.</p>
         </div>
+        <ModoCarruselSwitch tenantId={tenantId} slug={slug} inicial={carrusel} />
         <Link
           href={routes.menu(slug)}
           target="_blank"
