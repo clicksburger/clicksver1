@@ -127,6 +127,9 @@ export interface Pedido {
   demora: number | null;
   horaConfirmado: string | null;
   horaEntregado: string | null;
+  /** Cuándo se rechazó (null si no está rechazado). */
+  horaRechazado: string | null;
+  motivoRechazo: string | null;
   creadoEn: string;
   /** null = no aplica o envío a confirmar. */
   costoEnvio: number | null;

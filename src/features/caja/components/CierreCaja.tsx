@@ -23,6 +23,7 @@ import {
   getTurnoAbierto,
   listarTurnos,
   pendientesActuales,
+  rechazadosActuales,
   ventasActuales,
   type CajaTurno,
 } from "../services/caja.client";
@@ -62,6 +63,8 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
   } | null>(null);
   /** Pedidos del turno que nadie cerró en el sistema (ventas potenciales). */
   const [pendientes, setPendientes] = useState<{ cantidad: number; total: number } | null>(null);
+  /** Pedidos del turno rechazados en Caja (siguen en la base, restaurables). */
+  const [rechazados, setRechazados] = useState(0);
   const [historial, setHistorial] = useState<CajaTurno[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -82,6 +85,7 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
       setTurno(t);
       setVentas(t ? await ventasActuales(tenantId, t.abierto_en) : null);
       setPendientes(t ? await pendientesActuales(tenantId, t.abierto_en) : null);
+      setRechazados(t ? await rechazadosActuales(tenantId, t.abierto_en).catch(() => 0) : 0);
       if (esAdmin) setHistorial(await listarTurnos(tenantId));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al cargar la caja");
@@ -99,6 +103,7 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
     try {
       setVentas(await ventasActuales(tenantId, turno.abierto_en));
       setPendientes(await pendientesActuales(tenantId, turno.abierto_en));
+      setRechazados(await rechazadosActuales(tenantId, turno.abierto_en).catch(() => 0));
     } catch {
       /* ignorar: el botón se puede reintentar */
     }
@@ -247,6 +252,13 @@ export function CierreCaja({ tenantId }: { tenantId: string }) {
                 </p>
               </div>
             </div>
+          )}
+
+          {rechazados > 0 && (
+            <p className="text-sm text-muted">
+              {rechazados} {rechazados === 1 ? "pedido rechazado" : "pedidos rechazados"} en el
+              turno. No suman a las ventas; se pueden revisar o restaurar desde Caja → Rechazados.
+            </p>
           )}
 
           <div className="flex items-center justify-between border-t border-border pt-3">

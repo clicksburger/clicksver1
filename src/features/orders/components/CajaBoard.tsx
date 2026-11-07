@@ -14,9 +14,11 @@ import {
   UtensilsCrossed,
   Undo2,
   CheckCircle2,
+  RotateCcw,
 } from "lucide-react";
-import { Tabs, Button } from "@/components/ui";
+import { Tabs, Button, Modal } from "@/components/ui";
 import { routes } from "@/constants/routes";
+import { horaCorta } from "@/lib/format";
 import { useOrders } from "../hooks/useOrders";
 import { pedidosPorEstado } from "../store/orders.store";
 import { OrderCard } from "./OrderCard";
@@ -25,7 +27,68 @@ import { getTurnoAbierto } from "@/features/caja/services/caja.client";
 import { ventasDelTurno } from "@/features/caja/turno-report";
 import type { Pedido } from "@/types/domain";
 
-type TabKey = "entrantes" | "preparacion" | "listos" | "entregados";
+type TabKey = "entrantes" | "preparacion" | "listos" | "entregados" | "rechazados";
+const TABS: TabKey[] = ["entrantes", "preparacion", "listos", "entregados", "rechazados"];
+
+const MOTIVOS_RAPIDOS = ["Sin stock", "Fuera de zona", "Local cerrado", "Pedido duplicado"];
+
+/** Confirmación antes de rechazar, con motivo opcional. El pedido NO se borra. */
+function RechazarModal({
+  pedido,
+  onClose,
+  onConfirm,
+}: {
+  pedido: Pedido | null;
+  onClose: () => void;
+  onConfirm: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState("");
+  useEffect(() => setMotivo(""), [pedido?.id]);
+  return (
+    <Modal
+      open={pedido != null}
+      onClose={onClose}
+      title={`¿Rechazar el pedido #${pedido?.num ?? ""}?`}
+    >
+      <p className="mb-4 text-sm text-muted">
+        Al cliente le va a aparecer como rechazado. Si fue una equivocación, lo podés restaurar
+        desde la pestaña Rechazados.
+      </p>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {MOTIVOS_RAPIDOS.map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMotivo(m)}
+            className={`rounded-full border px-3 py-1 text-xs ${
+              motivo === m ? "border-primary text-primary" : "border-border text-muted"
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+      <label className="mb-5 block text-sm">
+        <span className="mb-1 block text-muted">Motivo (opcional)</span>
+        <input
+          value={motivo}
+          maxLength={200}
+          onChange={(e) => setMotivo(e.target.value)}
+          className="w-full rounded-lg border border-border bg-surface2 px-3 py-2"
+          placeholder="Ej.: sin stock de pan"
+        />
+      </label>
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button variant="danger" onClick={() => onConfirm(motivo)}>
+          <X className="h-4 w-4" /> Rechazar pedido
+        </Button>
+      </div>
+    </Modal>
+  );
+}
 
 function ConfirmarNuevo({
   onConfirm,
@@ -75,9 +138,10 @@ export function CajaBoard({
   /** Carrusel de la carta: los chicos eligen promo o normal desde acá. */
   carrusel: CarruselConfig;
 }) {
-  const { pedidos, cambiarEstado, eliminar, editar } = useOrders(tenantId);
+  const { pedidos, cambiarEstado, rechazar, restaurar, editar } = useOrders(tenantId);
   const [tab, setTab] = useState<TabKey>("entrantes");
   const [editando, setEditando] = useState<Pedido | null>(null);
+  const [rechazando, setRechazando] = useState<Pedido | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const actionLock = useRef(false);
@@ -105,8 +169,7 @@ export function CajaBoard({
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem("clicks:caja-tab");
-      if (["entrantes", "preparacion", "listos", "entregados"].includes(saved ?? ""))
-        setTab(saved as TabKey);
+      if (TABS.includes(saved as TabKey)) setTab(saved as TabKey);
     } catch {
       /* optional */
     }
@@ -125,6 +188,10 @@ export function CajaBoard({
     preparacion: pedidosPorEstado(pedidos, ["en_cocina"]),
     listos: pedidosPorEstado(pedidos, ["listo"]),
     entregados: turnoDesde ? ventasDelTurno(pedidos, turnoDesde, null).reverse() : [],
+    // Rechazados de las últimas 24 h (la ventana que cargan las boards), el último primero.
+    rechazados: pedidosPorEstado(pedidos, ["rechazado"]).sort((a, b) =>
+      (b.horaRechazado ?? b.creadoEn).localeCompare(a.horaRechazado ?? a.creadoEn),
+    ),
   };
   const visibles = grupos[tab];
 
@@ -175,6 +242,7 @@ export function CajaBoard({
           { key: "preparacion", label: "En cocina", count: grupos.preparacion.length },
           { key: "listos", label: "Listos", count: grupos.listos.length },
           { key: "entregados", label: "Entregados", count: grupos.entregados.length },
+          { key: "rechazados", label: "Rechazados", count: grupos.rechazados.length },
         ]}
       />
 
@@ -195,7 +263,9 @@ export function CajaBoard({
               ? "La caja está cerrada. Los entregados empiezan de cero con cada turno; los anteriores están en Cierre."
               : tab === "entregados"
                 ? "Todavía no hay entregas en este turno."
-                : "No hay pedidos en esta sección."}
+                : tab === "rechazados"
+                  ? "No hay pedidos rechazados en las últimas 24 horas."
+                  : "No hay pedidos en esta sección."}
         </p>
       ) : (
         <fieldset disabled={busy} className="ops-grid" aria-label="Pedidos de la sección">
@@ -206,8 +276,19 @@ export function CajaBoard({
                   {botonEditar(p)}
                   <ConfirmarNuevo
                     onConfirm={(demora) => run(() => cambiarEstado(p, "en_cocina", { demora }))()}
-                    onReject={run(() => eliminar(p))}
+                    onReject={() => setRechazando(p)}
                   />
+                </>
+              )}
+              {p.estado === "rechazado" && (
+                <>
+                  <p className="w-full text-xs text-danger">
+                    Rechazado{p.horaRechazado ? ` a las ${horaCorta(p.horaRechazado)}` : ""}
+                    {p.motivoRechazo ? ` · ${p.motivoRechazo}` : ""}
+                  </p>
+                  <Button size="sm" variant="ghost" onClick={run(() => restaurar(p))}>
+                    <RotateCcw className="h-4 w-4" /> Restaurar
+                  </Button>
                 </>
               )}
               {p.estado === "en_cocina" && (
@@ -236,6 +317,16 @@ export function CajaBoard({
           ))}
         </fieldset>
       )}
+
+      <RechazarModal
+        pedido={rechazando}
+        onClose={() => setRechazando(null)}
+        onConfirm={(motivo) => {
+          const p = rechazando;
+          setRechazando(null);
+          if (p) void run(() => rechazar(p, motivo))();
+        }}
+      />
 
       <OrderEditModal
         pedido={editando}
