@@ -257,8 +257,10 @@ export type Database = {
           hora_confirmado: string | null
           hora_entregado: string | null
           hora_listo: string | null
+          hora_rechazado: string | null
           id: string
           items: Json
+          motivo_rechazo: string | null
           nombre: string | null
           num: number
           tenant_id: string
@@ -272,8 +274,10 @@ export type Database = {
           hora_confirmado?: string | null
           hora_entregado?: string | null
           hora_listo?: string | null
+          hora_rechazado?: string | null
           id?: string
           items?: Json
+          motivo_rechazo?: string | null
           nombre?: string | null
           num: number
           tenant_id: string
@@ -287,8 +291,10 @@ export type Database = {
           hora_confirmado?: string | null
           hora_entregado?: string | null
           hora_listo?: string | null
+          hora_rechazado?: string | null
           id?: string
           items?: Json
+          motivo_rechazo?: string | null
           nombre?: string | null
           num?: number
           tenant_id?: string

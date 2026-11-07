@@ -6,6 +6,8 @@ export type EstadoPedido = (typeof ESTADOS)[number];
 /**
  * Transiciones permitidas desde cada estado.
  * Flujo: nuevo → (Confirmar en Caja) → en_cocina → listo → entregado.
+ * Rechazar NO borra el pedido: pasa a "rechazado" y se puede restaurar a
+ * "nuevo" si fue una equivocación.
  * "confirmado" quedó deprecado (Caja confirma directo a cocina); se conserva
  * solo por compatibilidad con datos antiguos.
  */
@@ -15,7 +17,7 @@ export const TRANSICIONES: Record<EstadoPedido, EstadoPedido[]> = {
   en_cocina: ["listo"],
   listo: ["entregado", "en_cocina"], // "en_cocina" = reabrir
   entregado: [],
-  rechazado: [],
+  rechazado: ["nuevo"], // "nuevo" = restaurar a Entrantes
 };
 
 export const ESTADO_LABEL: Record<EstadoPedido, string> = {
