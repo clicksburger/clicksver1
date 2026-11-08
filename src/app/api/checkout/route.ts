@@ -13,6 +13,12 @@ import { mapMenu } from "@/features/menu/mappers";
 import { mapTenant } from "@/features/tenants/mappers";
 import { estaAbierto } from "@/features/tenants/horarios";
 import { carruselConfigFromJson, disponibleHoy } from "@/features/menu/carrusel";
+import {
+  VENCE_LINK_WHATSAPP_S,
+  existeComprobante,
+  linkComprobante,
+  rutaComprobante,
+} from "@/features/orders/comprobante.server";
 import { cotizarEnvio } from "@/features/envios/cotizar.server";
 import { totalProductos } from "@/features/envios/tarifas";
 import type { CheckoutDetails, CotizacionEnvio, PedidoItem } from "@/types/domain";
@@ -49,7 +55,7 @@ export async function POST(request: Request) {
     if (tenantError || !tenant)
       return respondError("No se pudo consultar el local. Intentá nuevamente.", 503);
     const requestHash = createHash("sha256").update(JSON.stringify(input)).digest("hex");
-    const responseFor = (
+    const responseFor = async (
       num: number,
       nombre: string,
       tipo: string,
@@ -60,6 +66,10 @@ export async function POST(request: Request) {
       const phone = (process.env.CLICKS_WHATSAPP_NUMBER ?? "543518737099").replace(/\D/g, "");
       // El id del pedido es el requestId: solo lo conoce quien hizo el pedido.
       const seguimientoUrl = `${new URL(request.url).origin}/pedido/${input.requestId}`;
+      // Comprobante adjunto: link firmado (30 días) para que el local lo abra desde el chat.
+      const comprobanteUrl = checkout.comprobante
+        ? ((await linkComprobante(db, checkout.comprobante, VENCE_LINK_WHATSAPP_S)) ?? undefined)
+        : undefined;
       return NextResponse.json(
         {
           id: input.requestId,
@@ -67,7 +77,7 @@ export async function POST(request: Request) {
           total: totalProductos(items) + (costoEnvio ?? 0),
           costoEnvio,
           envioAConfirmar: tipo === "delivery" && costoEnvio == null,
-          whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(num, nombre, tipo, items, checkout, seguimientoUrl))}`,
+          whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(num, nombre, tipo, items, checkout, seguimientoUrl, comprobanteUrl))}`,
         },
         { headers: { "Cache-Control": "no-store" } },
       );
@@ -156,6 +166,13 @@ export async function POST(request: Request) {
       requestHash,
       ...(envio ? { envio } : {}),
     };
+    // El comprobante es opcional: si el cliente lo subió, queda asociado al pedido.
+    if (
+      input.pago === "transferencia" &&
+      input.comprobante &&
+      (await existeComprobante(db, tenant.id, input.requestId))
+    )
+      checkout.comprobante = rutaComprobante(tenant.id, input.requestId);
     const costoEnvio = envio?.costo ?? null;
     const items = attachCheckout(priced, checkout);
     // UUID estable evita pedidos duplicados en reintentos. La restricción (tenant_id,num)

@@ -120,19 +120,6 @@ export async function pedidosDelTurno(
   };
 }
 
-/** Cuántos pedidos que entraron en el turno se rechazaron (no son ventas). */
-export async function rechazadosActuales(tenantId: string, desde: string): Promise<number> {
-  const supabase = createSupabaseBrowserClient();
-  const { count, error } = await supabase
-    .from("pedidos")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", tenantId)
-    .eq("estado", "rechazado")
-    .gte("creado_en", desde);
-  if (error) throw new Error("No se pudieron contar los rechazados del turno.");
-  return count ?? 0;
-}
-
 /** Pedidos del turno sin cerrar en el sistema: cantidad y total (ventas potenciales). */
 export async function pendientesActuales(tenantId: string, desde: string) {
   const { pendientes } = await pedidosDelTurno(tenantId, desde, null);

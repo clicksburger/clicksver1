@@ -61,7 +61,12 @@ export function OrderCard({
       </div>
 
       <OrderItems items={pedido.items} />
-      <OrderContact checkout={pedido.checkout} costoEnvio={pedido.costoEnvio} />
+      <OrderContact
+        checkout={pedido.checkout}
+        costoEnvio={pedido.costoEnvio}
+        pedidoId={pedido.id}
+        tenantId={pedido.tenantId}
+      />
       {pedido.tipo === "delivery" && (
         <div className="ops-order-total text-xs">
           <span>Envío</span>

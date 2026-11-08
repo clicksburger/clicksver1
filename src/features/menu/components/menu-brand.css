@@ -1556,3 +1556,33 @@ html:has(.clicks-menu) {
     box-shadow: 0 0 0 6px #ffd21c33;
   }
 }
+
+/* Botón de Mercado Pago (transferencia) y carga del comprobante. */
+.cm-mp-button {
+  background: #009ee3;
+  color: #fff;
+  box-shadow: 0 3px 0 #0074a8;
+  transition:
+    background-color 0.18s,
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.cm-mp-button:hover {
+  background: #00a9f2;
+}
+.cm-mp-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0074a8;
+}
+.cm-comprobante-input {
+  transition:
+    border-color 0.18s,
+    background-color 0.18s;
+}
+.cm-comprobante-input:hover {
+  background: #ffd21c0d;
+}
+.cm-comprobante-input:focus-within {
+  outline: 3px solid #9c6700;
+  outline-offset: 2px;
+}

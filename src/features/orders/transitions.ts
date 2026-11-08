@@ -10,7 +10,7 @@ type PedidoUpdate = Database["public"]["Tables"]["pedidos"]["Update"];
 export function transicion(
   desde: EstadoPedido,
   hacia: EstadoPedido,
-  extra?: { demora?: number; motivo?: string | null },
+  extra?: { demora?: number },
 ): PedidoUpdate {
   if (!puedeTransicionar(desde, hacia)) {
     throw new Error(`Transición no permitida: ${desde} → ${hacia}`);
@@ -27,12 +27,6 @@ export function transicion(
   }
   if (hacia === "entregado") {
     patch.hora_entregado = ahora;
-  }
-  // Rechazar: hora_rechazado la pone un trigger de la base (0025), igual que al
-  // restaurar la limpia junto con el motivo. Acá solo viaja el motivo, si hay.
-  if (hacia === "rechazado") {
-    const motivo = extra?.motivo?.trim();
-    if (motivo) patch.motivo_rechazo = motivo.slice(0, 200);
   }
   return patch;
 }

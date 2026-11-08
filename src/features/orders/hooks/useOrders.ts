@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/services/supabase/client";
 import { useOrdersStore } from "../store/orders.store";
-import { fetchPedidos, updatePedido, clearPedidos } from "../services/orders.service";
+import { fetchPedidos, updatePedido, deletePedido, clearPedidos } from "../services/orders.service";
 import { mapPedido, type PedidoRow } from "../mappers";
 import { transicion } from "../transitions";
 import type { EstadoPedido } from "@/constants/order-states";
@@ -52,32 +52,18 @@ export function useOrders(tenantId: string) {
   }, [tenantId, setAll, upsert, removeByNum]);
 
   // ── Acciones (escriben en Supabase; Realtime sincroniza al resto) ──
-  const cambiarEstado = (
-    p: Pedido,
-    hacia: EstadoPedido,
-    extra?: { demora?: number; motivo?: string | null },
-  ) => updatePedido(p.id, transicion(p.estado, hacia, extra));
+  const cambiarEstado = (p: Pedido, hacia: EstadoPedido, extra?: { demora?: number }) =>
+    updatePedido(p.id, transicion(p.estado, hacia, extra));
 
-  /** Rechazar NO borra: el pedido pasa a "rechazado" y se puede restaurar. */
-  const rechazar = async (p: Pedido, motivo?: string | null) => {
-    const patch = transicion(p.estado, "rechazado", { motivo });
-    // Optimista: pasa a Rechazados al instante; Realtime trae la hora real.
-    upsert({
-      ...p,
-      estado: "rechazado",
-      horaRechazado: new Date().toISOString(),
-      motivoRechazo: patch.motivo_rechazo ?? null,
-    });
+  const eliminar = async (p: Pedido) => {
+    removeByNum(p.num); // optimista: desaparece al instante
     try {
-      await updatePedido(p.id, patch);
+      await deletePedido(p.id);
     } catch (e) {
-      upsert(p); // revertir si falla
+      upsert(p); // revertir si el borrado falla
       throw e;
     }
   };
-
-  /** Deshace un rechazo: vuelve a Entrantes como pedido nuevo. */
-  const restaurar = (p: Pedido) => updatePedido(p.id, transicion(p.estado, "nuevo"));
 
   const editar = (
     p: Pedido,
@@ -99,5 +85,5 @@ export function useOrders(tenantId: string) {
 
   const limpiarTodos = () => clearPedidos(tenantId);
 
-  return { pedidos, cambiarEstado, rechazar, restaurar, editar, limpiarTodos };
+  return { pedidos, cambiarEstado, eliminar, editar, limpiarTodos };
 }

@@ -114,6 +114,8 @@ export interface CheckoutDetails {
   requestHash: string;
   /** Solo delivery (pedidos nuevos): cómo se calculó el envío al confirmar. */
   envio?: CotizacionEnvio;
+  /** Ruta del comprobante de transferencia en el bucket privado (si lo adjuntó). */
+  comprobante?: string;
 }
 
 export interface Pedido {
@@ -127,9 +129,6 @@ export interface Pedido {
   demora: number | null;
   horaConfirmado: string | null;
   horaEntregado: string | null;
-  /** Cuándo se rechazó (null si no está rechazado). */
-  horaRechazado: string | null;
-  motivoRechazo: string | null;
   creadoEn: string;
   /** null = no aplica o envío a confirmar. */
   costoEnvio: number | null;

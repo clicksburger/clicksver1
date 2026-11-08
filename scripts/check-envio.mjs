@@ -119,7 +119,22 @@ const transferencia = checkout.whatsappMessage(10, "Ana", "takeaway", items, {
   pago: "transferencia",
 });
 assert.match(transferencia, /Transferencia al alias CLICKSBURGER\. \(pendiente\)/);
-assert.match(transferencia, /Te adjunto el comprobante de la transferencia\./);
+assert.match(transferencia, /Te mando el comprobante de la transferencia por acá\./);
+// Comprobante adjunto en el checkout: el mensaje lleva el link para abrirlo.
+const conComprobante = checkout.whatsappMessage(
+  12,
+  "Ana",
+  "takeaway",
+  items,
+  { ...base, direccion: null, pago: "transferencia", comprobante: "t/x" },
+  "https://clicks.test/pedido/x",
+  "https://firmado.test/comprobante",
+);
+assert.match(
+  conComprobante,
+  /Comprobante de la transferencia: https:\/\/firmado\.test\/comprobante/,
+);
+assert.doesNotMatch(conComprobante, /Te mando el comprobante/);
 const transferenciaAConfirmar = checkout.whatsappMessage(11, "Ana", "delivery", items, {
   ...base,
   pago: "transferencia",

@@ -22,6 +22,8 @@ export const checkoutSchema = z
     direccion: z.string().trim().max(240).default(""),
     referencia: z.string().trim().max(150).default(""),
     pago: z.enum(["efectivo", "transferencia"]),
+    /** El cliente adjuntó el comprobante antes de confirmar (opcional). */
+    comprobante: z.boolean().optional(),
     items: z
       .array(
         z.object({
@@ -102,6 +104,8 @@ export function whatsappMessage(
   checkout: CheckoutDetails,
   /** Link al seguimiento del pedido; se agrega al final del mensaje. */
   seguimientoUrl?: string,
+  /** Link temporal al comprobante adjunto en el checkout. */
+  comprobanteUrl?: string,
 ): string {
   const money = (amount: number) =>
     new Intl.NumberFormat("es-AR", {
@@ -150,9 +154,11 @@ export function whatsappMessage(
     ...envioLineas,
     ...(checkout.pago === "transferencia"
       ? [
-          tipo === "delivery" && envio?.estado !== "calculado"
-            ? "Transfiero cuando me confirmen el total con el envío y les mando el comprobante por acá."
-            : "Te adjunto el comprobante de la transferencia.",
+          comprobanteUrl
+            ? `Comprobante de la transferencia: ${comprobanteUrl}`
+            : tipo === "delivery" && envio?.estado !== "calculado"
+              ? "Transfiero cuando me confirmen el total con el envío y les mando el comprobante por acá."
+              : "Te mando el comprobante de la transferencia por acá.",
         ]
       : []),
     "El pedido ya está registrado en el sistema. Quedo a la espera de confirmación del local.",

@@ -317,6 +317,13 @@ const carrusel = load("src/features/menu/carrusel.ts", { "./promos": promos });
 }
 const route = load("src/app/api/checkout/route.ts", {
   "@/features/menu/carrusel": carrusel,
+  // Comprobante opcional: en la prueba existe y se firma un link fijo.
+  "@/features/orders/comprobante.server": {
+    VENCE_LINK_WHATSAPP_S: 60,
+    existeComprobante: async () => true,
+    linkComprobante: async (_db, ruta) => `https://firmado.test/${ruta}`,
+    rutaComprobante: (tenantId, pedidoId) => `${tenantId}/${pedidoId}`,
+  },
   "@/services/supabase/admin": { createSupabaseAdminClient: () => db },
   "@/constants/business": { BUSINESS_SLUG: "clicks-burger" },
   "@/features/orders/checkout": checkout,
@@ -351,6 +358,23 @@ assert.equal(checkout.readCheckout(rows[0].items).telefono, "3515550100");
 // Seguimiento: el id del pedido es el requestId y el link viaja en el mensaje.
 assert.equal(receipt.id, body.requestId);
 assert.ok(message.includes(`Sigo mi pedido acá: http://localhost:3000/pedido/${body.requestId}`));
+// Transferencia con comprobante adjunto: queda en el pedido y el link va en el mensaje.
+{
+  const conComprobante = {
+    ...body,
+    requestId: randomUUID(),
+    pago: "transferencia",
+    comprobante: true,
+  };
+  const respuesta = await route.POST(request(conComprobante));
+  assert.equal(respuesta.status, 200);
+  const recibo = await respuesta.json();
+  const texto = new URL(recibo.whatsappUrl).searchParams.get("text");
+  assert.ok(texto.includes("Comprobante de la transferencia: https://firmado.test/"));
+  const guardado = rows.find((row) => row.id === conComprobante.requestId);
+  assert.ok(checkout.readCheckout(guardado.items).comprobante.endsWith(conComprobante.requestId));
+  rows.splice(rows.indexOf(guardado), 1); // las pruebas siguientes cuentan un solo pedido
+}
 assert.equal((await route.POST(request({ ...body, nombre: "Otro cliente" }))).status, 409);
 assert.equal(rows.length, 1);
 assert.equal((await route.POST(request(body, "https://otra-web.example"))).status, 403);
