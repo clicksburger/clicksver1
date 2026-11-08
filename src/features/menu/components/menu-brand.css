@@ -1670,3 +1670,277 @@ html:has(.clicks-menu) {
     height: 260px;
   }
 }
+
+/* ── Más vida en la carta ──────────────────────────────────────────────
+   Todo con transform/opacity (o `scale`/`translate`/`rotate` sueltos, que se
+   suman al `transform` de cada elemento sin pisarlo). */
+
+/* Hero: la foto entra acercándose y después "respira" muy despacio. */
+.cm-hero-photo {
+  will-change: scale, translate;
+  animation:
+    cm-hero-photo-in 1.4s var(--cm-ease) both,
+    cm-hero-breathe 16s ease-in-out 1.4s infinite alternate;
+}
+@keyframes cm-hero-photo-in {
+  from {
+    opacity: 0;
+    scale: 1.14;
+  }
+  to {
+    opacity: 1;
+    scale: 1.03;
+  }
+}
+@keyframes cm-hero-breathe {
+  from {
+    scale: 1.03;
+    translate: 0 0;
+  }
+  to {
+    scale: 1.1;
+    translate: -1.5% -1%;
+  }
+}
+
+/* Hero: cada línea del título sube desde abajo de su máscara, una tras otra. */
+.cm-hero-line {
+  display: block;
+  overflow: hidden;
+  /* Aire para las colas de la itálica, que la máscara cortaría. */
+  padding: 0 0.12em 0.08em 0;
+  margin-bottom: -0.08em;
+}
+.cm-hero-line > span {
+  display: inline-block;
+  animation: cm-line-up 0.85s var(--cm-ease) both;
+}
+.cm-hero-line + .cm-hero-line > span {
+  animation-delay: 0.14s;
+}
+@keyframes cm-line-up {
+  from {
+    transform: translateY(105%) rotate(4deg);
+  }
+  to {
+    transform: none;
+  }
+}
+/* "Clicks." con un trazo amarillo que se dibuja de izquierda a derecha. */
+.cm-hero-mark {
+  position: relative;
+}
+.cm-hero-mark::after {
+  content: "";
+  position: absolute;
+  left: 0.02em;
+  right: 0.18em;
+  bottom: 0.06em;
+  height: 0.13em;
+  border-radius: 999px;
+  background: #ffd21c;
+  box-shadow: 0 0.04em 0 #e8641c;
+  z-index: -1;
+  transform: scaleX(0) rotate(-1.5deg);
+  transform-origin: left center;
+  animation: cm-mark-draw 0.7s var(--cm-ease) 0.75s forwards;
+}
+@keyframes cm-mark-draw {
+  to {
+    transform: scaleX(1) rotate(-1.5deg);
+  }
+}
+.cm-hero-copy > p,
+.cm-hero-bottom {
+  animation: cm-hero-enter 0.6s var(--cm-ease) both;
+}
+.cm-hero-copy > p {
+  animation-delay: 0.05s;
+}
+.cm-hero-bottom {
+  animation-delay: 0.5s;
+}
+
+/* Botón del hero: la flecha invita a bajar y un brillo lo cruza cada tanto. */
+.cm-hero-cta {
+  position: relative;
+  overflow: hidden;
+}
+.cm-hero-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, #ffffffa6 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: cm-cta-sheen 5s ease-in-out 1.6s infinite;
+  pointer-events: none;
+}
+@keyframes cm-cta-sheen {
+  0%,
+  70% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+.cm-hero-cta-arrow {
+  animation: cm-arrow-nudge 2.4s ease-in-out 1.4s infinite;
+}
+@keyframes cm-arrow-nudge {
+  0%,
+  60%,
+  100% {
+    translate: 0 0;
+  }
+  70% {
+    translate: 0 4px;
+  }
+  80% {
+    translate: 0 -1px;
+  }
+  90% {
+    translate: 0 2px;
+  }
+}
+
+/* Cartel de la foto: cae girando y queda flotando. */
+.cm-photo-caption {
+  animation:
+    cm-caption-in 0.6s var(--cm-spring, cubic-bezier(0.22, 1.2, 0.36, 1)) 0.9s both,
+    cm-caption-float 4.5s ease-in-out 1.5s infinite;
+}
+@keyframes cm-caption-in {
+  from {
+    opacity: 0;
+    translate: 0 -18px;
+    rotate: -14deg;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+}
+@keyframes cm-caption-float {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  50% {
+    translate: 0 -5px;
+    rotate: 2deg;
+  }
+}
+
+/* Franja amarilla: un reflejo que la recorre despacio. */
+.cm-brand-strip {
+  background:
+    linear-gradient(90deg, transparent 0, #fff8df99 50%, transparent 100%) -30% 0 / 30% 100%
+      no-repeat,
+    #ffd21c;
+  animation: cm-strip-sheen 6s ease-in-out infinite;
+}
+@keyframes cm-strip-sheen {
+  0%,
+  35% {
+    background-position:
+      -30% 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      130% 0,
+      0 0;
+  }
+}
+
+/* Mascotas: después de entrar se balancean, como saludando. */
+.cm-section-mascot {
+  animation:
+    cm-mascot-in 0.4s var(--cm-ease) backwards,
+    cm-mascot-idle 3.8s ease-in-out 0.6s infinite;
+}
+.cm-footer-mascot {
+  transform-origin: bottom center;
+  animation: cm-mascot-idle 4.6s ease-in-out infinite;
+}
+@keyframes cm-mascot-idle {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  30% {
+    translate: 0 -5px;
+    rotate: 4deg;
+  }
+  60% {
+    translate: 0 -2px;
+    rotate: -3deg;
+  }
+}
+
+/* Título de la categoría: subrayado que se dibuja al mostrarla. */
+.cm-section-heading h2 {
+  position: relative;
+  display: inline-block;
+}
+.cm-section-heading h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 46%;
+  height: 4px;
+  border-radius: 999px;
+  background: #ffd21c;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.cm-category-content:not([hidden]) .cm-section-heading h2::after {
+  animation: cm-mark-draw-flat 0.6s var(--cm-ease) 0.15s forwards;
+}
+@keyframes cm-mark-draw-flat {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Contador del carrito: rebota cada vez que suma algo. */
+.cm-header-links b {
+  animation: cm-cart-pop 0.5s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+@keyframes cm-cart-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  55% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Tarjetas: donde el navegador lo permite, aparecen a medida que entran en
+   pantalla al hacer scroll (sin JS). En el resto queda la entrada al cargar. */
+@supports (animation-timeline: view()) {
+  .cm-category-content:not([hidden]) .cm-product-card:not(.is-promo) {
+    animation: cm-card-reveal linear backwards;
+    animation-delay: 0s;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
+}
+@keyframes cm-card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

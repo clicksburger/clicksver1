@@ -183,14 +183,18 @@ export function MenuClient({
         <div className="cm-hero-inner">
           <div className="cm-hero-copy">
             <p>Hechas para ese antojo.</p>
-            <h1>
-              Hoy se come
-              <br />
-              Clicks.
+            {/* Cada línea sube desde abajo de su propia máscara; "Clicks." se subraya. */}
+            <h1 aria-label="Hoy se come Clicks.">
+              <span className="cm-hero-line" aria-hidden="true">
+                <span>Hoy se come</span>
+              </span>
+              <span className="cm-hero-line" aria-hidden="true">
+                <span className="cm-hero-mark">Clicks.</span>
+              </span>
             </h1>
             <div className="cm-hero-bottom">
               <button type="button" onClick={() => choose(burgersIndex)} className="cm-hero-cta">
-                Elegí tu burger <ArrowDown size={19} />
+                Elegí tu burger <ArrowDown size={19} className="cm-hero-cta-arrow" />
               </button>
               <span>
                 Simple, doble o triple.

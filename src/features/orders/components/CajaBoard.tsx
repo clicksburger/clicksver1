@@ -15,6 +15,7 @@ import {
   Undo2,
   CheckCircle2,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 import { Tabs, Button, Modal } from "@/components/ui";
 import { routes } from "@/constants/routes";
@@ -243,7 +244,15 @@ export function CajaBoard({
           { key: "preparacion", label: "En cocina", count: grupos.preparacion.length },
           { key: "listos", label: "Listos", count: grupos.listos.length },
           { key: "entregados", label: "Entregados", count: grupos.entregados.length },
-          { key: "rechazados", label: "Rechazados", count: grupos.rechazados.length },
+          {
+            key: "rechazados",
+            label: "Rechazados",
+            count: grupos.rechazados.length,
+            icon: <Trash2 className="h-[1.1em] w-[1.1em]" aria-hidden="true" />,
+            soloIcono: true,
+            alFinal: true,
+            tono: "danger",
+          },
         ]}
       />
 
