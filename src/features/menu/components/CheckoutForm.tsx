@@ -12,6 +12,7 @@ import {
   MapPin,
   MessageCircle,
   Paperclip,
+  Store,
   X,
 } from "lucide-react";
 import { formatPrecio } from "@/lib/format";
@@ -25,7 +26,9 @@ interface Receipt {
   id?: string;
   num: number;
   total: number;
-  whatsappUrl: string;
+  /** null en pedidos de mostrador: no se manda nada por WhatsApp. */
+  whatsappUrl: string | null;
+  mostrador?: boolean;
   costoEnvio?: number | null;
   envioAConfirmar?: boolean;
 }
@@ -38,6 +41,17 @@ export interface CheckoutAttempt {
 }
 
 const normalizarDireccion = (value: string) => value.trim().replace(/\s+/g, " ");
+
+type TipoEntrega = "takeaway" | "delivery" | "salon";
+const ENTREGAS_ONLINE: { value: TipoEntrega; label: string }[] = [
+  { value: "takeaway", label: "Lo retiro personalmente" },
+  { value: "delivery", label: "Necesito que me lo envíen" },
+];
+const ENTREGAS_MOSTRADOR: { value: TipoEntrega; label: string }[] = [
+  { value: "salon", label: "Come en el local" },
+  { value: "takeaway", label: "Para llevar" },
+  { value: "delivery", label: "Envío a domicilio" },
+];
 
 const MERCADO_PAGO_WEB = "https://www.mercadopago.com.ar/";
 const MAX_COMPROBANTE_MB = 4;
@@ -69,8 +83,11 @@ function AliasTransferencia({
   archivo,
   onArchivo,
   adjuntado,
+  mostrador = false,
 }: {
   envioAConfirmar: boolean;
+  /** Pedido de mostrador: solo el alias para pasárselo al cliente. */
+  mostrador?: boolean;
   /** Solo en el formulario: comprobante elegido (opcional). */
   archivo?: File | null;
   onArchivo?: (archivo: File | null) => void;
@@ -109,74 +126,82 @@ function AliasTransferencia({
           {copiado ? "Copiado" : "Copiar"}
         </button>
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          abrirMercadoPago();
-          marcarCopiado();
-        }}
-        className="cm-mp-button inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold"
-      >
-        Copiar alias y abrir Mercado Pago <ExternalLink size={15} />
-      </button>
-      <p className="text-muted">Pegá el alias en Mercado Pago → Transferir.</p>
-      {envioAConfirmar && (
+      {mostrador ? (
         <p className="text-muted">
-          Como el envío está a confirmar, podés esperar que el local te pase el total antes de
-          transferir.
-        </p>
-      )}
-      {onArchivo ? (
-        <div className="flex flex-col gap-1.5 border-t border-border pt-2.5">
-          {archivo ? (
-            <div className="flex items-center gap-2 rounded-lg border border-[#72d49d] bg-[#72d49d1a] px-3 py-2">
-              <Paperclip size={14} className="shrink-0 text-[#72d49d]" />
-              <span className="min-w-0 flex-1 truncate text-text">{archivo.name}</span>
-              <button
-                type="button"
-                onClick={() => onArchivo(null)}
-                aria-label="Quitar comprobante"
-                className="rounded p-1 text-muted hover:text-text"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ) : (
-            <label className="cm-comprobante-input flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 font-bold text-text hover:border-primary">
-              <Paperclip size={14} className="text-primary" /> Adjuntar comprobante (opcional)
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                className="sr-only"
-                onChange={(event) => {
-                  const elegido = event.target.files?.[0] ?? null;
-                  event.target.value = "";
-                  if (elegido && elegido.size > MAX_COMPROBANTE_MB * 1024 * 1024) {
-                    setErrorArchivo(`El archivo pesa más de ${MAX_COMPROBANTE_MB} MB.`);
-                    return;
-                  }
-                  setErrorArchivo(null);
-                  onArchivo(elegido);
-                }}
-              />
-            </label>
-          )}
-          {errorArchivo && <p className="text-danger">{errorArchivo}</p>}
-          <p className="text-muted">
-            {archivo
-              ? "Se envía al local junto con tu pedido, en el mensaje de WhatsApp."
-              : "Si ya transferiste, adjuntalo y le llega al local con el pedido. Si no, seguí igual y mandalo después por WhatsApp."}
-          </p>
-        </div>
-      ) : adjuntado ? (
-        <p className="flex items-center gap-1.5 font-bold text-[#72d49d]">
-          <Check size={14} /> Comprobante adjuntado: va en el mensaje de WhatsApp.
+          Pasale el alias al cliente y verificá la transferencia antes de entregar.
         </p>
       ) : (
-        <p className="text-muted">
-          Cuando transfieras, <strong className="text-text">mandá el comprobante</strong> por el
-          chat de WhatsApp.
-        </p>
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              abrirMercadoPago();
+              marcarCopiado();
+            }}
+            className="cm-mp-button inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold"
+          >
+            Copiar alias y abrir Mercado Pago <ExternalLink size={15} />
+          </button>
+          <p className="text-muted">Pegá el alias en Mercado Pago → Transferir.</p>
+          {envioAConfirmar && (
+            <p className="text-muted">
+              Como el envío está a confirmar, podés esperar que el local te pase el total antes de
+              transferir.
+            </p>
+          )}
+          {onArchivo ? (
+            <div className="flex flex-col gap-1.5 border-t border-border pt-2.5">
+              {archivo ? (
+                <div className="flex items-center gap-2 rounded-lg border border-[#72d49d] bg-[#72d49d1a] px-3 py-2">
+                  <Paperclip size={14} className="shrink-0 text-[#72d49d]" />
+                  <span className="min-w-0 flex-1 truncate text-text">{archivo.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => onArchivo(null)}
+                    aria-label="Quitar comprobante"
+                    className="rounded p-1 text-muted hover:text-text"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className="cm-comprobante-input flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 font-bold text-text hover:border-primary">
+                  <Paperclip size={14} className="text-primary" /> Adjuntar comprobante (opcional)
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const elegido = event.target.files?.[0] ?? null;
+                      event.target.value = "";
+                      if (elegido && elegido.size > MAX_COMPROBANTE_MB * 1024 * 1024) {
+                        setErrorArchivo(`El archivo pesa más de ${MAX_COMPROBANTE_MB} MB.`);
+                        return;
+                      }
+                      setErrorArchivo(null);
+                      onArchivo(elegido);
+                    }}
+                  />
+                </label>
+              )}
+              {errorArchivo && <p className="text-danger">{errorArchivo}</p>}
+              <p className="text-muted">
+                {archivo
+                  ? "Se envía al local junto con tu pedido, en el mensaje de WhatsApp."
+                  : "Si ya transferiste, adjuntalo y le llega al local con el pedido. Si no, seguí igual y mandalo después por WhatsApp."}
+              </p>
+            </div>
+          ) : adjuntado ? (
+            <p className="flex items-center gap-1.5 font-bold text-[#72d49d]">
+              <Check size={14} /> Comprobante adjuntado: va en el mensaje de WhatsApp.
+            </p>
+          ) : (
+            <p className="text-muted">
+              Cuando transfieras, <strong className="text-text">mandá el comprobante</strong> por el
+              chat de WhatsApp.
+            </p>
+          )}
+        </>
       )}
     </div>
   );
@@ -184,28 +209,36 @@ function AliasTransferencia({
 
 export function CheckoutForm({
   items,
-  cerrado,
+  cerrado: cerradoCarta,
   onSaved,
   attempt,
   onSubmitting,
+  mostrador = false,
+  onOtroPedido,
 }: {
   items: PedidoItem[];
   cerrado: boolean;
   onSaved: () => void;
   attempt: CheckoutAttempt;
   onSubmitting: (saving: boolean) => void;
+  /** Pedido cargado por la caja: entra directo, sin WhatsApp. */
+  mostrador?: boolean;
+  /** Mostrador: cierra el comprobante para cargar el próximo pedido. */
+  onOtroPedido?: () => void;
 }) {
+  // La caja carga pedidos de mostrador aunque la carta figure cerrada.
+  const cerrado = cerradoCarta && !mostrador;
   const previous = attempt.body
     ? (JSON.parse(attempt.body) as {
         nombre: string;
         telefono: string;
-        tipo: "takeaway" | "delivery";
+        tipo: TipoEntrega;
         direccion: string;
         referencia: string;
         pago: string;
       })
     : null;
-  const [tipo, setTipo] = useState<"takeaway" | "delivery">(previous?.tipo ?? "takeaway");
+  const [tipo, setTipo] = useState<TipoEntrega>(previous?.tipo ?? "takeaway");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(attempt.receipt ?? null);
@@ -284,14 +317,15 @@ export function CheckoutForm({
     setLocked(true);
     setError(null);
     // Abrir en el gesto del usuario evita bloqueos de pop-ups después del guardado.
-    const popup = window.open("about:blank", "_blank");
+    // En el mostrador no se abre WhatsApp: el pedido ya se confirmó en persona.
+    const popup = mostrador ? null : window.open("about:blank", "_blank");
     if (popup) popup.opener = null;
     try {
       if (!pendingBody.current) {
         requestId.current ??= crypto.randomUUID();
         // Comprobante opcional: si falla la subida, el pedido sigue igual (se manda por WhatsApp).
         let conComprobante = false;
-        if (form.get("pago") === "transferencia" && comprobante) {
+        if (!mostrador && form.get("pago") === "transferencia" && comprobante) {
           try {
             const datos = new FormData();
             datos.set("pedidoId", requestId.current);
@@ -311,6 +345,7 @@ export function CheckoutForm({
           expectedTotal: total,
           expectedEnvio: tipo === "delivery" ? (cotizacion?.costo ?? null) : undefined,
           requestId: requestId.current,
+          ...(mostrador ? { mostrador: true } : {}),
           nombre: form.get("nombre"),
           telefono: form.get("telefono"),
           tipo,
@@ -337,7 +372,11 @@ export function CheckoutForm({
       const result = await response.json();
       if (!response.ok) {
         // 400 y 409 son errores determinados antes de guardar; permiten corregir.
-        if (response.status === 400 || (response.status === 409 && !result.alreadySaved)) {
+        if (
+          response.status === 400 ||
+          response.status === 403 ||
+          (response.status === 409 && !result.alreadySaved)
+        ) {
           pendingBody.current = null;
           delete attempt.body;
           setLocked(false);
@@ -347,11 +386,15 @@ export function CheckoutForm({
         throw new Error(result.error || "No se pudo registrar el pedido.");
       }
       const saved = result as Receipt;
-      if (saved.id) guardarUltimoPedido(saved.id, saved.num);
+      // El aviso "Tu pedido #N" de la carta es para el cliente, no para la compu de la caja.
+      if (saved.id && !saved.mostrador) guardarUltimoPedido(saved.id, saved.num);
       attempt.receipt = saved;
       setReceipt(saved);
       onSaved();
-      if (popup && !popup.closed) popup.location.href = saved.whatsappUrl;
+      if (popup && !popup.closed) {
+        if (saved.whatsappUrl) popup.location.href = saved.whatsappUrl;
+        else popup.close();
+      }
     } catch (cause) {
       popup?.close();
       setError(
@@ -365,6 +408,41 @@ export function CheckoutForm({
       onSubmitting(false);
     }
   }
+
+  if (receipt && (receipt.mostrador || !receipt.whatsappUrl))
+    return (
+      <div className="flex flex-col items-center gap-4 py-3 text-center" role="status">
+        <CheckCircle2 size={42} className="text-primary" />
+        <h3 className="text-xl font-bold">Pedido #{receipt.num} cargado</h3>
+        <p className="text-sm leading-relaxed text-muted">
+          Ya está en <strong className="text-text">Entrantes</strong> de la caja. Confirmalo ahí
+          para mandarlo a cocina. No se envió nada por WhatsApp.
+        </p>
+        <p className="font-display text-2xl text-primary">{formatPrecio(receipt.total)}</p>
+        {receipt.costoEnvio != null && receipt.costoEnvio > 0 && (
+          <p className="-mt-3 text-xs text-muted">
+            Incluye envío de {formatPrecio(receipt.costoEnvio)}
+          </p>
+        )}
+        {receipt.envioAConfirmar && (
+          <p className="rounded-xl border border-primary px-3 py-2 text-sm">
+            El envío quedó a confirmar: acordalo con el cliente y cargalo con Editar en la caja.
+          </p>
+        )}
+        {pago === "transferencia" && (
+          <div className="w-full">
+            <AliasTransferencia envioAConfirmar={!!receipt.envioAConfirmar} mostrador />
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onOtroPedido}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-bold text-bg"
+        >
+          <Store size={20} /> Cargar otro pedido
+        </button>
+      </div>
+    );
 
   if (receipt)
     return (
@@ -396,7 +474,7 @@ export function CheckoutForm({
           </div>
         )}
         <a
-          href={receipt.whatsappUrl}
+          href={receipt.whatsappUrl ?? undefined}
           target="_blank"
           rel="noopener noreferrer"
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-bold text-bg"
@@ -420,7 +498,11 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5">
-      <p className="text-sm text-muted">Completá tus datos para coordinar tu pedido con Clicks.</p>
+      <p className="text-sm text-muted">
+        {mostrador
+          ? "Pedido tomado en el mostrador: entra directo a la caja, sin WhatsApp."
+          : "Completá tus datos para coordinar tu pedido con Clicks."}
+      </p>
       <details className="rounded-xl border border-border p-3 text-sm">
         <summary className="cursor-pointer font-bold">
           Resumen de productos ({items.reduce((count, item) => count + item.cantidad, 0)})
@@ -442,39 +524,40 @@ export function CheckoutForm({
       )}
       <fieldset disabled={loading || locked} className="flex flex-col gap-5 disabled:opacity-75">
         <label className="flex flex-col gap-2 text-sm font-bold">
-          Nombre y apellido *
+          {mostrador ? "Nombre del cliente *" : "Nombre y apellido *"}
           <input
             name="nombre"
             defaultValue={previous?.nombre}
             required
-            minLength={3}
+            minLength={mostrador ? 2 : 3}
             maxLength={100}
-            autoComplete="name"
-            placeholder="Necesitamos saber cómo te llamás"
+            autoComplete={mostrador ? "off" : "name"}
+            placeholder={
+              mostrador ? "Para llamarlo cuando esté listo" : "Necesitamos saber cómo te llamás"
+            }
             className="rounded-xl border border-border bg-surface2 px-3 py-3 text-text focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </label>
         <label className="flex flex-col gap-2 text-sm font-bold">
-          Teléfono *
+          {mostrador ? "Teléfono (opcional)" : "Teléfono *"}
           <input
             name="telefono"
             defaultValue={previous?.telefono}
-            required
+            required={!mostrador}
             type="tel"
             minLength={8}
             maxLength={30}
-            autoComplete="tel"
-            placeholder="Un número para contactarte"
+            autoComplete={mostrador ? "off" : "tel"}
+            placeholder={
+              mostrador ? "Solo si hace falta contactarlo" : "Un número para contactarte"
+            }
             className="rounded-xl border border-border bg-surface2 px-3 py-3 text-text focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </label>
         <fieldset className="border-t border-border pt-4">
           <legend className="mb-2 text-sm font-bold">Forma de entrega *</legend>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { value: "takeaway", label: "Lo retiro personalmente" },
-              { value: "delivery", label: "Necesito que me lo envíen" },
-            ].map((option) => (
+          <div className={`grid gap-3 ${mostrador ? "grid-cols-3" : "grid-cols-2"}`}>
+            {(mostrador ? ENTREGAS_MOSTRADOR : ENTREGAS_ONLINE).map((option) => (
               <label
                 key={option.value}
                 className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm ${tipo === option.value ? "border-primary bg-surface3" : "border-border"}`}
@@ -484,7 +567,7 @@ export function CheckoutForm({
                   name="tipo"
                   value={option.value}
                   checked={tipo === option.value}
-                  onChange={() => setTipo(option.value as typeof tipo)}
+                  onChange={() => setTipo(option.value)}
                   className="accent-[#ffd21c]"
                 />
                 {option.label}
@@ -552,11 +635,20 @@ export function CheckoutForm({
                     <p className="font-bold text-text">No podemos calcular tu envío</p>
                     <p className="text-muted">
                       {MOTIVO_A_CONFIRMAR[cotizacion.motivo]}{" "}
-                      <strong className="text-text">
-                        Informalo cuando envíes el pedido por WhatsApp
-                      </strong>{" "}
-                      y el local te confirma el costo antes de prepararlo. Podés seguir con el
-                      pedido igual.
+                      {mostrador ? (
+                        <>
+                          Acordá el costo con el cliente y cargalo después con Editar. Podés seguir
+                          con el pedido igual.
+                        </>
+                      ) : (
+                        <>
+                          <strong className="text-text">
+                            Informalo cuando envíes el pedido por WhatsApp
+                          </strong>{" "}
+                          y el local te confirma el costo antes de prepararlo. Podés seguir con el
+                          pedido igual.
+                        </>
+                      )}
                     </p>
                   </div>
                 )}
@@ -606,11 +698,16 @@ export function CheckoutForm({
           {pago === "transferencia" ? (
             <AliasTransferencia
               envioAConfirmar={tipo === "delivery" && cotizacion?.estado !== "calculado"}
-              archivo={comprobante}
-              onArchivo={setComprobante}
+              mostrador={mostrador}
+              archivo={mostrador ? undefined : comprobante}
+              onArchivo={mostrador ? undefined : setComprobante}
             />
           ) : (
-            <p className="mt-3 text-xs text-muted">Pagás al recibir o retirar tu pedido.</p>
+            <p className="mt-3 text-xs text-muted">
+              {mostrador
+                ? "Se cobra en el mostrador o al entregar."
+                : "Pagás al recibir o retirar tu pedido."}
+            </p>
           )}
         </fieldset>
       </fieldset>
@@ -655,19 +752,25 @@ export function CheckoutForm({
         disabled={loading || cerrado || cotizando}
         className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-bold text-bg disabled:opacity-50"
       >
-        <MessageCircle size={20} />
+        {mostrador ? <Store size={20} /> : <MessageCircle size={20} />}
         {loading
           ? "Guardando pedido…"
           : cotizando
             ? "Calculando envío…"
-            : locked
-              ? "Reintentar y abrir WhatsApp"
-              : tipo === "delivery" && !cotizacion
-                ? "Calcular envío y continuar"
-                : "Confirmar y pedir por WhatsApp"}
+            : tipo === "delivery" && !cotizacion && !locked
+              ? "Calcular envío y continuar"
+              : mostrador
+                ? locked
+                  ? "Reintentar carga"
+                  : "Cargar pedido en caja"
+                : locked
+                  ? "Reintentar y abrir WhatsApp"
+                  : "Confirmar y pedir por WhatsApp"}
       </button>
       <p className="text-xs leading-relaxed text-muted">
-        Tu pedido quedará registrado en el local. En WhatsApp, revisá el mensaje y pulsá Enviar.
+        {mostrador
+          ? "El pedido aparece en Entrantes de la caja. No se envía nada por WhatsApp."
+          : "Tu pedido quedará registrado en el local. En WhatsApp, revisá el mensaje y pulsá Enviar."}
       </p>
     </form>
   );

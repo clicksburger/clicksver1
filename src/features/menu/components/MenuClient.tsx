@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, Instagram, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { ArrowDown, Instagram, ShoppingBag, Store, UtensilsCrossed, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { ClicksLogo } from "@/components/ui/ClicksLogo";
@@ -10,6 +10,7 @@ import { MenuItemCard } from "./MenuItemCard";
 import { CartPanel } from "./CartPanel";
 import { PromoCarousel } from "./PromoCarousel";
 import { PedidoEnCurso } from "./PedidoEnCurso";
+import { useModoMostrador } from "@/features/orders/mostrador";
 import { unirPromosConHamburguesas } from "../promos";
 import type { SlideCarrusel } from "../carrusel";
 import { Sheet } from "@/components/ui";
@@ -55,6 +56,7 @@ export function MenuClient({
   const count = useCartStore((state) => cartCount(state.lines));
   const total = useCartStore((state) => cartTotal(state.lines));
   const [open, setOpen] = useState(true);
+  const mostrador = useModoMostrador();
   const [cartOpen, setCartOpen] = useState(false);
   const [active, setActive] = useState(0);
   const activeIndex = Math.min(active, Math.max(0, groups.length - 1));
@@ -152,7 +154,19 @@ export function MenuClient({
           </div>
         </div>
       </header>
-      <PedidoEnCurso />
+      {mostrador.activo ? (
+        <div className="cm-mostrador-bar" role="status">
+          <Store size={18} aria-hidden="true" />
+          <p>
+            <strong>Modo mostrador.</strong> Los pedidos entran directo a la caja, sin WhatsApp.
+          </p>
+          <button type="button" onClick={mostrador.salir}>
+            <X size={15} aria-hidden="true" /> Salir
+          </button>
+        </div>
+      ) : (
+        <PedidoEnCurso />
+      )}
       <section className="cm-hero" aria-label="Clicks Burger">
         <div className="cm-hero-photo-wrap">
           <Image
@@ -314,7 +328,7 @@ export function MenuClient({
             )}
           </main>
           <aside className="cm-cart-aside" id="clicks-cart" aria-label="Resumen de tu pedido">
-            <CartPanel tenant={tenant} cerrado={!open} />
+            <CartPanel tenant={tenant} cerrado={!open} mostrador={mostrador.activo} />
           </aside>
         </div>
       </div>
@@ -370,7 +384,7 @@ export function MenuClient({
         title="Tu pedido"
         className="cm-cart-sheet"
       >
-        <CartPanel tenant={tenant} cerrado={!open} showTitle={false} />
+        <CartPanel tenant={tenant} cerrado={!open} showTitle={false} mostrador={mostrador.activo} />
       </Sheet>
     </div>
   );

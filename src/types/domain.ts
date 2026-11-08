@@ -107,7 +107,10 @@ export interface PedidoItem {
 
 export interface CheckoutDetails {
   version: 1;
+  /** Vacío en pedidos de mostrador cargados sin teléfono. */
   telefono: string;
+  /** "mostrador": lo cargó la caja; no pasa por WhatsApp. Sin valor: pedido online. */
+  origen?: "mostrador";
   direccion: string | null;
   referencia: string | null;
   pago: "efectivo" | "transferencia";
@@ -129,6 +132,9 @@ export interface Pedido {
   demora: number | null;
   horaConfirmado: string | null;
   horaEntregado: string | null;
+  /** Cuándo se rechazó (null si no está rechazado). */
+  horaRechazado: string | null;
+  motivoRechazo: string | null;
   creadoEn: string;
   /** null = no aplica o envío a confirmar. */
   costoEnvio: number | null;

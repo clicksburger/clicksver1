@@ -232,6 +232,49 @@ html:has(.clicks-menu) {
   font-weight: 700;
   transform: rotate(-3deg);
 }
+/* Modo mostrador: la caja carga pedidos desde la carta, sin WhatsApp. */
+.cm-mostrador-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1420px;
+  margin: 12px auto;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: #ffd21c;
+  color: #131e24;
+  box-shadow: 0 4px 0 #ba8811;
+  font-size: 14px;
+  line-height: 1.35;
+  animation: cm-pec-in 0.45s var(--cm-ease) both;
+}
+.cm-mostrador-bar p {
+  flex: 1;
+  min-width: 0;
+}
+.cm-mostrador-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #131e24;
+  color: #fff8df;
+  font-size: 13px;
+  font-weight: 900;
+}
+@media (max-width: 1440px) {
+  .cm-mostrador-bar {
+    margin: 12px 24px;
+  }
+}
+@media (max-width: 700px) {
+  .cm-mostrador-bar {
+    margin: 10px 12px;
+    font-size: 13px;
+  }
+}
 /* Aviso para volver al seguimiento del pedido en curso. */
 .cm-pedido-en-curso {
   display: flex;
@@ -1585,4 +1628,45 @@ html:has(.clicks-menu) {
 .cm-comprobante-input:focus-within {
   outline: 3px solid #9c6700;
   outline-offset: 2px;
+}
+/* Fotos que rotan (FotosRotativas): fundido entre tomas del mismo producto y,
+   en la carta, un acercamiento lento con un leve corrimiento hacia arriba.
+   `scale`/`translate` son propiedades aparte de `transform`, así se suman al
+   zoom del hover de la tarjeta sin pisarlo. La que sale conserva su zoom hasta
+   terminar el fundido y recién ahí vuelve a cero. */
+.foto-rot {
+  opacity: 0;
+  transition:
+    opacity 0.9s ease,
+    transform 0.45s var(--cm-ease, ease);
+}
+.foto-rot[data-on="true"] {
+  opacity: 1;
+}
+.foto-rot-zoom {
+  scale: 1;
+  translate: 0 0;
+  transition:
+    opacity 0.9s ease,
+    transform 0.45s var(--cm-ease, ease),
+    scale 0s linear 0.9s,
+    translate 0s linear 0.9s;
+}
+.foto-rot-zoom[data-on="true"] {
+  scale: 1.07;
+  translate: 0 -2%;
+  transition:
+    opacity 0.9s ease,
+    transform 0.45s var(--cm-ease, ease),
+    scale 6s ease-out,
+    translate 6s ease-out;
+}
+/* Detalle con varias fotos verticales: más alto para que entre la burger. */
+.cm-detail-photo.is-galeria {
+  height: 300px;
+}
+@media (max-width: 700px) {
+  .cm-detail-photo.is-galeria {
+    height: 260px;
+  }
 }

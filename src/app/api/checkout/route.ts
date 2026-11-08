@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/services/supabase/admin";
+import { getStaffSession } from "@/features/auth/session";
+import { ACCESO_SECCION } from "@/constants/roles";
 import { BUSINESS_SLUG } from "@/constants/business";
 import {
   checkoutSchema,
@@ -54,6 +56,19 @@ export async function POST(request: Request) {
       .single();
     if (tenantError || !tenant)
       return respondError("No se pudo consultar el local. Intentá nuevamente.", 503);
+    // Pedido de mostrador: solo lo carga alguien logueado en la caja (admin o cajero).
+    if (input.mostrador) {
+      const staff = await getStaffSession(tenant.id).catch(() => null);
+      if (!staff || !ACCESO_SECCION.caja.includes(staff.rol))
+        return NextResponse.json(
+          {
+            error:
+              "Para cargar pedidos de mostrador tenés que tener la sesión de la caja abierta en este navegador.",
+            sinSesionCaja: true,
+          },
+          { status: 403 },
+        );
+    }
     const requestHash = createHash("sha256").update(JSON.stringify(input)).digest("hex");
     const responseFor = async (
       num: number,
@@ -66,10 +81,13 @@ export async function POST(request: Request) {
       const phone = (process.env.CLICKS_WHATSAPP_NUMBER ?? "543518737099").replace(/\D/g, "");
       // El id del pedido es el requestId: solo lo conoce quien hizo el pedido.
       const seguimientoUrl = `${new URL(request.url).origin}/pedido/${input.requestId}`;
+      // El pedido de mostrador ya está confirmado en persona: no se arma el mensaje.
+      const mostrador = checkout.origen === "mostrador";
       // Comprobante adjunto: link firmado (30 días) para que el local lo abra desde el chat.
-      const comprobanteUrl = checkout.comprobante
-        ? ((await linkComprobante(db, checkout.comprobante, VENCE_LINK_WHATSAPP_S)) ?? undefined)
-        : undefined;
+      const comprobanteUrl =
+        !mostrador && checkout.comprobante
+          ? ((await linkComprobante(db, checkout.comprobante, VENCE_LINK_WHATSAPP_S)) ?? undefined)
+          : undefined;
       return NextResponse.json(
         {
           id: input.requestId,
@@ -77,7 +95,10 @@ export async function POST(request: Request) {
           total: totalProductos(items) + (costoEnvio ?? 0),
           costoEnvio,
           envioAConfirmar: tipo === "delivery" && costoEnvio == null,
-          whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(num, nombre, tipo, items, checkout, seguimientoUrl, comprobanteUrl))}`,
+          mostrador,
+          whatsappUrl: mostrador
+            ? null
+            : `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(num, nombre, tipo, items, checkout, seguimientoUrl, comprobanteUrl))}`,
         },
         { headers: { "Cache-Control": "no-store" } },
       );
@@ -113,7 +134,8 @@ export async function POST(request: Request) {
     };
     const existing = await findExisting();
     if (existing) return existing;
-    if (!estaAbierto(mapTenant(tenant).horarios))
+    // La caja puede cargar pedidos de mostrador aunque la carta figure cerrada.
+    if (!input.mostrador && !estaAbierto(mapTenant(tenant).horarios))
       return respondError("El local está cerrado. Podés pedir cuando vuelva a abrir.", 409);
     const [products, variants, categories] = await Promise.all([
       db.from("menu_items").select("*").eq("tenant_id", tenant.id).eq("activo", true),
@@ -164,6 +186,7 @@ export async function POST(request: Request) {
       referencia: input.tipo === "delivery" ? input.referencia || null : null,
       pago: input.pago,
       requestHash,
+      ...(input.mostrador ? { origen: "mostrador" as const } : {}),
       ...(envio ? { envio } : {}),
     };
     // El comprobante es opcional: si el cliente lo subió, queda asociado al pedido.

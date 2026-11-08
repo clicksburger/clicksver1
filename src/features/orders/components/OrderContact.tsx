@@ -53,12 +53,17 @@ export function OrderContact({
   if (!checkout) return null;
   return (
     <div className="ops-contact flex flex-col gap-1 border-t border-border pt-2 text-xs leading-relaxed">
-      <p>
-        Teléfono:{" "}
-        <a className="underline" href={`tel:${checkout.telefono}`}>
-          {checkout.telefono}
-        </a>
-      </p>
+      {checkout.origen === "mostrador" && (
+        <p className="font-bold text-primary">Cargado en el mostrador · sin WhatsApp</p>
+      )}
+      {checkout.telefono && (
+        <p>
+          Teléfono:{" "}
+          <a className="underline" href={`tel:${checkout.telefono}`}>
+            {checkout.telefono}
+          </a>
+        </p>
+      )}
       {checkout.direccion && (
         <p className="break-words">
           Entrega: {checkout.direccion}

@@ -78,7 +78,9 @@ export async function loadShiftDashboard(tenantId: string) {
     turno.cerrado_en ?? now,
   );
   const delivered = ventasDelTurno(base.orders, from, turno.cerrado_en);
-  const pending = base.orders.filter((o) => o.estado !== "entregado" && o.creadoEn >= from);
+  const pending = base.orders.filter(
+    (o) => o.estado !== "entregado" && o.estado !== "rechazado" && o.creadoEn >= from,
+  );
   const orders = [...delivered, ...pending].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
   return { ...base, orders, turno };
 }

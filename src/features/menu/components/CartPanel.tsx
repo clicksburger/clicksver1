@@ -15,13 +15,17 @@ const stepperBtn =
 
 export function CartPanel({
   tenant,
-  cerrado = false,
+  cerrado: cerradoCarta = false,
   showTitle = true,
+  mostrador = false,
 }: {
   tenant: Tenant;
   cerrado?: boolean;
   showTitle?: boolean;
+  /** La caja carga el pedido en el mostrador: entra directo, sin WhatsApp. */
+  mostrador?: boolean;
 }) {
+  const cerrado = cerradoCarta && !mostrador;
   const lines = useCartStore((state) => state.lines);
   const increment = useCartStore((state) => state.increment);
   const decrement = useCartStore((state) => state.decrement);
@@ -35,7 +39,11 @@ export function CartPanel({
   const total = cartTotal(lines);
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-card">
-      {showTitle && <h2 className="font-display text-xl tracking-wide text-text">Tu pedido</h2>}
+      {showTitle && (
+        <h2 className="font-display text-xl tracking-wide text-text">
+          {mostrador ? "Pedido de mostrador" : "Tu pedido"}
+        </h2>
+      )}
       {!lines.length ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
           <ShoppingBag className="h-8 w-8 text-muted" aria-hidden="true" />
@@ -91,8 +99,14 @@ export function CartPanel({
             <strong className="font-display text-2xl text-primary">{formatPrecio(total)}</strong>
           </div>
           <p className="text-xs leading-relaxed text-muted">
-            En el siguiente paso elegís entrega y pago. El pedido llega al sistema de{" "}
-            {tenant.nombre} y podés enviarlo por WhatsApp.
+            {mostrador ? (
+              "En el siguiente paso cargás cliente, entrega y pago. Entra directo a la caja."
+            ) : (
+              <>
+                En el siguiente paso elegís entrega y pago. El pedido llega al sistema de{" "}
+                {tenant.nombre} y podés enviarlo por WhatsApp.
+              </>
+            )}
           </p>
           {cerrado && <p className="text-sm text-danger">El local está cerrado.</p>}
           <button
@@ -108,7 +122,7 @@ export function CartPanel({
             }}
             className="rounded-xl bg-primary px-4 py-3 font-bold text-bg disabled:opacity-50"
           >
-            Continuar con el pedido
+            {mostrador ? "Cargar cliente y pago" : "Continuar con el pedido"}
           </button>
         </>
       )}
@@ -118,7 +132,7 @@ export function CartPanel({
           onClick={() => setCheckoutOpen(true)}
           className="text-sm text-primary underline"
         >
-          Ver pedido guardado y abrir WhatsApp
+          {mostrador ? "Ver el último pedido cargado" : "Ver pedido guardado y abrir WhatsApp"}
         </button>
       )}
       {checkoutOpen &&
@@ -128,7 +142,7 @@ export function CartPanel({
             onClose={() => {
               if (!saving) setCheckoutOpen(false);
             }}
-            title="Completá tu pedido"
+            title={mostrador ? "Cargar pedido de mostrador" : "Completá tu pedido"}
             className="cm-checkout max-w-xl"
             backdropClassName="cm-modal-backdrop"
           >
@@ -139,6 +153,8 @@ export function CartPanel({
               onSaved={clear}
               attempt={attemptData.current}
               onSubmitting={setSaving}
+              mostrador={mostrador}
+              onOtroPedido={() => setCheckoutOpen(false)}
             />
           </Modal>,
           document.body,

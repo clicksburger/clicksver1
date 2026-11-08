@@ -7,8 +7,9 @@ import { Modal } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatPrecio } from "@/lib/format";
 import { useCartStore } from "../store/cart.store";
-import { textoVigencia } from "../promos";
+import { fotosDe, textoVigencia } from "../promos";
 import { PosterPromo } from "./PosterPromo";
+import { FotosRotativas } from "./FotosRotativas";
 import type { MenuItem } from "@/types/domain";
 
 type Layout = "overlay" | "compact";
@@ -114,8 +115,20 @@ export const MenuItemCard = memo(function MenuItemCard({
 
   // Las fotos originales miden hasta 1800px y pesan hasta 1,4 MB; la tarjeta las
   // muestra a ~110px. Con `sizes` el navegador baja una versión liviana (WebP).
+  const fotos = fotosDe(item.imagenUrl);
+  // Desfase estable por producto: las tarjetas con varias fotos no cambian a la vez.
+  const desfase = (item.id.charCodeAt(0) % 6) * 400;
   const img = (className: string, sizes = "(min-width: 1600px) 120px, 110px") =>
-    item.imagenUrl ? (
+    fotos.length > 1 ? (
+      <FotosRotativas
+        fotos={fotos}
+        alt={item.nombre}
+        sizes={sizes}
+        className={className}
+        desfase={desfase}
+        onLoad={marcarCargada}
+      />
+    ) : item.imagenUrl ? (
       <Image
         src={item.imagenUrl}
         alt={item.nombre}
@@ -147,15 +160,27 @@ export const MenuItemCard = memo(function MenuItemCard({
     >
       <div className="cm-product-detail">
         {item.imagenUrl && (
-          <div className="cm-detail-photo sk-img">
-            <Image
-              src={item.imagenUrl}
-              alt={item.nombre}
-              fill
-              sizes="(max-width: 700px) 100vw, 512px"
-              unoptimized={!optimizable(item.imagenUrl)}
-              onLoad={marcarCargada}
-            />
+          <div className={`cm-detail-photo sk-img ${fotos.length > 1 ? "is-galeria" : ""}`}>
+            {fotos.length > 1 ? (
+              <FotosRotativas
+                fotos={fotos}
+                alt={item.nombre}
+                sizes="(max-width: 700px) 100vw, 512px"
+                intervalo={3200}
+                activo={modalOpen}
+                zoom={false}
+                onLoad={marcarCargada}
+              />
+            ) : (
+              <Image
+                src={item.imagenUrl}
+                alt={item.nombre}
+                fill
+                sizes="(max-width: 700px) 100vw, 512px"
+                unoptimized={!optimizable(item.imagenUrl)}
+                onLoad={marcarCargada}
+              />
+            )}
           </div>
         )}
         {item.descripcion && (

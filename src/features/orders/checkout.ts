@@ -8,17 +8,23 @@ const phone = z
   .string()
   .trim()
   .max(30)
-  .transform((value) => value.replace(/\D/g, ""))
-  .refine((value) => value.length >= 8 && value.length <= 15, "Ingresá un teléfono válido.");
+  .default("")
+  .transform((value) => value.replace(/\D/g, ""));
+const telefonoValido = (value: string) => value.length >= 8 && value.length <= 15;
 export const checkoutSchema = z
   .object({
+    /**
+     * Pedido cargado por la caja en el mostrador: no va por WhatsApp, el teléfono
+     * es opcional y admite "Salón". El servidor exige sesión de admin o cajero.
+     */
+    mostrador: z.boolean().optional(),
     expectedTotal: z.number().finite().min(0),
     /** Envío que vio el cliente (null = a confirmar). El servidor lo recalcula y compara. */
     expectedEnvio: z.number().finite().min(0).nullable().optional(),
     requestId: z.string().uuid(),
-    nombre: z.string().trim().min(3, "Ingresá tu nombre y apellido.").max(100),
+    nombre: z.string().trim().min(2, "Ingresá tu nombre y apellido.").max(100),
     telefono: phone,
-    tipo: z.enum(["takeaway", "delivery"]),
+    tipo: z.enum(["takeaway", "delivery", "salon"]),
     direccion: z.string().trim().max(240).default(""),
     referencia: z.string().trim().max(150).default(""),
     pago: z.enum(["efectivo", "transferencia"]),
@@ -37,6 +43,25 @@ export const checkoutSchema = z
       .max(50),
   })
   .superRefine((value, context) => {
+    if (!value.mostrador && value.nombre.length < 3)
+      context.addIssue({
+        code: "custom",
+        path: ["nombre"],
+        message: "Ingresá tu nombre y apellido.",
+      });
+    // En el mostrador el teléfono es opcional, pero si se carga tiene que ser válido.
+    if ((!value.mostrador || value.telefono) && !telefonoValido(value.telefono))
+      context.addIssue({
+        code: "custom",
+        path: ["telefono"],
+        message: "Ingresá un teléfono válido.",
+      });
+    if (value.tipo === "salon" && !value.mostrador)
+      context.addIssue({
+        code: "custom",
+        path: ["tipo"],
+        message: "Elegí retiro o envío a domicilio.",
+      });
     if (value.tipo === "delivery" && value.direccion.length < 5)
       context.addIssue({
         code: "custom",

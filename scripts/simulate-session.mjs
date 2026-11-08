@@ -22,7 +22,7 @@
  *       → borra lo que dejó una corrida anterior.
  *
  * Credenciales (variables de entorno; el script no las guarda):
- *   CLICKS_TEST_EMAIL, CLICKS_TEST_PASSWORD      usuario admin o cajero (admin para poder borrar el turno)
+ *   CLICKS_TEST_EMAIL, CLICKS_TEST_PASSWORD      usuario admin o cajero (admin para poder borrar pedidos y turno)
  *   CLICKS_COCINA_EMAIL, CLICKS_COCINA_PASSWORD  opcional: verifica que cocina no pueda modificar
  * Supabase URL y anon key se leen de .env.local si no están en el entorno.
  */
@@ -250,6 +250,13 @@ async function cleanup(client, run, isAdmin) {
   section("Limpieza");
   const ids = run.pedidoIds;
   if (ids.length) {
+    if (!isAdmin) {
+      warn(
+        "Pedidos de prueba",
+        `solo un admin puede borrar pedidos (0025). Corré --limpiar ${run.id} con un usuario admin.`,
+      );
+      return false;
+    }
     const { error } = await client.from("pedidos").delete().in("id", ids);
     if (error) fail("Borrar pedidos de prueba", error.message);
     const { data: left } = await client.from("pedidos").select("id").in("id", ids);
@@ -739,11 +746,43 @@ async function main() {
   const edited = live.length >= 3 ? live[1] : undefined;
   const keepReady = live.length >= 2 ? live[live.length - 1] : undefined;
   if (rejected) {
-    // "Rechazar" en caja elimina el pedido.
+    // "Rechazar" en caja NO borra: pasa a "rechazado" y se puede restaurar.
     await timed(`Rechazar #${rejected.num}`, () =>
-      staff.from("pedidos").delete().eq("id", rejected.requestId).select("id"),
+      staff
+        .from("pedidos")
+        .update({ estado: "rechazado", motivo_rechazo: "Prueba de simulación" })
+        .eq("id", rejected.requestId)
+        .select("id"),
     );
-    ok(`Pedido #${rejected.num} rechazado`);
+    const { data: rej } = await staff
+      .from("pedidos")
+      .select("estado, hora_rechazado")
+      .eq("id", rejected.requestId)
+      .maybeSingle();
+    check(
+      rej?.estado === "rechazado" && Boolean(rej?.hora_rechazado),
+      `Pedido #${rejected.num} rechazado sin borrarse`,
+      "rechazado + hora_rechazado",
+      rej ? `${rej.estado} / ${rej.hora_rechazado ?? "sin hora"}` : "no existe",
+    );
+    // Restaurar y volver a rechazar: el trigger limpia y vuelve a poner la hora.
+    await timed(`Restaurar #${rejected.num}`, () =>
+      staff.from("pedidos").update({ estado: "nuevo" }).eq("id", rejected.requestId).select("id"),
+    );
+    const { data: back } = await staff
+      .from("pedidos")
+      .select("estado, hora_rechazado, motivo_rechazo")
+      .eq("id", rejected.requestId)
+      .maybeSingle();
+    check(
+      back?.estado === "nuevo" && !back?.hora_rechazado && !back?.motivo_rechazo,
+      `Pedido #${rejected.num} restaurado`,
+      "nuevo sin datos de rechazo",
+      back ? `${back.estado} / ${back.hora_rechazado ?? "-"} / ${back.motivo_rechazo ?? "-"}` : "no existe",
+    );
+    await timed(`Rechazar de nuevo #${rejected.num}`, () =>
+      staff.from("pedidos").update({ estado: "rechazado" }).eq("id", rejected.requestId).select("id"),
+    );
   }
   if (edited) {
     const row = byId.get(edited.requestId);

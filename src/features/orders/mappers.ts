@@ -17,6 +17,9 @@ export function mapPedido(row: PedidoRow): Pedido {
     demora: row.demora,
     horaConfirmado: row.hora_confirmado,
     horaEntregado: row.hora_entregado,
+    // "?? null": si la migración 0025 todavía no se aplicó, la columna no viene.
+    horaRechazado: row.hora_rechazado ?? null,
+    motivoRechazo: row.motivo_rechazo ?? null,
     creadoEn: row.creado_en,
     costoEnvio: row.costo_envio == null ? null : Number(row.costo_envio),
     checkout: readCheckout(Array.isArray(row.items) ? (row.items as unknown as PedidoItem[]) : []),

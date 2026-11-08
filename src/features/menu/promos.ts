@@ -58,6 +58,43 @@ const GALERIA: Record<string, string[]> = {
 };
 
 /**
+ * Fotos extra de un producto, por imagen principal. A diferencia de las piezas
+ * de GALERIA (una diapositiva cada una), estas rotan dentro de la misma foto:
+ * en la tarjeta de la carta, en el detalle y en su pieza del carrusel.
+ * Igual que GALERIA: si el admin cambia la foto principal, se muestra solo la nueva.
+ */
+const FOTOS: Record<string, string[]> = {
+  "/img/american-clicks-1.jpg": [
+    "/img/american-clicks-2.jpg",
+    "/img/american-clicks-3.jpg",
+    "/img/american-clicks-4.jpg",
+  ],
+  "/img/crispy-clicks-1.jpg": ["/img/crispy-clicks-2.jpg", "/img/crispy-clicks.png"],
+  "/img/supreme-bacon-1.jpg": ["/img/supreme-bacon-2.jpg"],
+};
+
+/** Encuadre de cada foto cuando se recorta (dónde está la burger en la toma). */
+const ENCUADRE: Record<string, string> = {
+  "/img/american-clicks-1.jpg": "50% 52%",
+  "/img/american-clicks-2.jpg": "50% 50%",
+  "/img/american-clicks-3.jpg": "50% 50%",
+  "/img/american-clicks-4.jpg": "50% 52%",
+  "/img/crispy-clicks-1.jpg": "40% 30%",
+  "/img/crispy-clicks-2.jpg": "35% 36%",
+  "/img/supreme-bacon-1.jpg": "46% 50%",
+  "/img/supreme-bacon-2.jpg": "40% 58%",
+};
+
+/** Todas las fotos de un producto: la principal y las que rotan con ella. */
+export function fotosDe(imagenUrl: string | null): string[] {
+  if (!imagenUrl) return [];
+  return [imagenUrl, ...(FOTOS[imagenUrl] ?? [])];
+}
+
+/** `object-position` de una foto (centro si no tiene uno definido). */
+export const encuadreDe = (src: string) => ENCUADRE[src];
+
+/**
  * La carta muestra la categoría "Promociones" dentro de Hamburguesas, primera,
  * para que las promos no queden en una pestaña aparte y se vean con las burgers.
  */
@@ -78,6 +115,8 @@ export interface PromoSlide {
   key: string;
   item: MenuItem;
   src: string | null;
+  /** Fotos que rotan en esta pieza (la primera es `src`). Una sola: no rota. */
+  fotos: string[];
 }
 
 /** Diapositivas del carrusel: productos destacados, una por cada pieza gráfica. */
@@ -88,7 +127,12 @@ export function promoSlides(
   return items
     .filter((item) => item.activo && item.destacado && (incluirVencidas || estaVigente(item, now)))
     .flatMap((item) => {
-      const fotos = item.imagenUrl ? [item.imagenUrl, ...(GALERIA[item.imagenUrl] ?? [])] : [null];
-      return fotos.map((src, index) => ({ key: `${item.id}:${index}`, item, src }));
+      const piezas = item.imagenUrl ? [item.imagenUrl, ...(GALERIA[item.imagenUrl] ?? [])] : [null];
+      return piezas.map((src, index) => ({
+        key: `${item.id}:${index}`,
+        item,
+        src,
+        fotos: index === 0 ? fotosDe(src) : src ? [src] : [],
+      }));
     });
 }

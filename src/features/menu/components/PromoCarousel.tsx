@@ -7,6 +7,7 @@ import { formatPrecio } from "@/lib/format";
 import { diasRestantes, textoVigencia } from "../promos";
 import type { SlideCarrusel } from "../carrusel";
 import { PosterPromo } from "./PosterPromo";
+import { FotosRotativas } from "./FotosRotativas";
 import type { MenuItem } from "@/types/domain";
 import "./promo-carousel.css";
 
@@ -172,7 +173,9 @@ export function PromoCarousel({
             <span key={copy}>
               {uniqueItems.map((slide) => (
                 <span key={slide.item.id}>
-                  <b>Promo</b> {slide.item.nombre} <i>{precioDe(slide.item)}</i>
+                  {/* "Promo" solo para promos (con fecha o del día); el resto es "Clicks". */}
+                  <b>{slide.item.vigenteHasta || slide.etiqueta ? "Promo" : "Clicks"}</b>{" "}
+                  {slide.item.nombre} <i>{precioDe(slide.item)}</i>
                   <em>✦</em>
                 </span>
               ))}
@@ -240,7 +243,22 @@ export function PromoCarousel({
                       <div
                         className={`pc-card-face ${slide.src ? "sk-img" : ""} ${slide.disponible ? "" : "is-off"}`}
                       >
-                        {slide.src ? (
+                        {slide.fotos.length > 1 ? (
+                          // Varias fotos del producto: rotan mientras la pieza está al frente.
+                          <FotosRotativas
+                            fotos={slide.fotos}
+                            alt={pos === "front" ? `Foto de ${slide.item.nombre}` : ""}
+                            sizes="(max-width: 700px) 42vw, 320px"
+                            className="pc-card-img"
+                            intervalo={INTERVALO_MS / 2}
+                            activo={pos === "front" && !paused}
+                            zoom={false}
+                            priority={i === 0}
+                            onLoad={(event) => {
+                              event.currentTarget.dataset.loaded = "1";
+                            }}
+                          />
+                        ) : slide.src ? (
                           <Image
                             src={slide.src}
                             alt={pos === "front" ? `Pieza de la promo ${slide.item.nombre}` : ""}

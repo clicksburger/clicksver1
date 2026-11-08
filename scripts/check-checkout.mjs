@@ -29,6 +29,8 @@ const checkout = load("src/features/orders/checkout.ts", {
   "@/constants/business": load("src/constants/business.ts"),
   "@/features/menu/promos": promos,
 });
+// Sesión de staff simulada (null = cliente sin sesión).
+let staffSession = null;
 // El envío se simula: por defecto "a confirmar" (sin clave de Google).
 let cotizacionEnvio = tarifas.aConfirmar("no_disponible");
 const horarios = load("src/features/tenants/horarios.ts");
@@ -314,6 +316,21 @@ const carrusel = load("src/features/menu/carrusel.ts", { "./promos": promos });
     slidesLunes.every((slide) => slide.item.id === "halloween" && !slide.disponible),
     true,
   );
+  // Las fotos extra de un producto rotan dentro de la misma pieza (no suman diapositivas).
+  const american = { ...cheese, id: "american", imagenUrl: "/img/american-clicks-1.jpg" };
+  const slidesAmerican = carrusel.slidesCarrusel(
+    [american],
+    { ...config, normal: ["american"] },
+    lunes,
+  );
+  assert.equal(slidesAmerican.length, 1);
+  assert.equal(slidesAmerican[0].fotos.length, 4);
+  assert.equal(slidesAmerican[0].fotos[0], "/img/american-clicks-1.jpg");
+  assert.deepEqual(
+    slidesLunes.map((slide) => slide.fotos.length),
+    [1, 1],
+    "Los flyers siguen siendo una pieza cada uno",
+  );
 }
 const route = load("src/app/api/checkout/route.ts", {
   "@/features/menu/carrusel": carrusel,
@@ -332,6 +349,8 @@ const route = load("src/app/api/checkout/route.ts", {
   "@/features/tenants/horarios": horarios,
   "@/features/envios/tarifas": tarifas,
   "@/features/envios/cotizar.server": { cotizarEnvio: async () => cotizacionEnvio },
+  "@/features/auth/session": { getStaffSession: async () => staffSession },
+  "@/constants/roles": load("src/constants/roles.ts"),
 });
 const request = (value, origin = "http://localhost:3000") =>
   new Request("http://localhost:3000/api/checkout", {
@@ -433,6 +452,51 @@ assert.equal(
   "Recupera pedidos existentes aun con el local cerrado",
 );
 assert.equal(rows.length, filasConEnvio + 1);
+// Pedido de mostrador: lo carga la caja, sin WhatsApp, teléfono opcional y "Salón".
+const mostrador = {
+  ...body,
+  requestId: randomUUID(),
+  mostrador: true,
+  nombre: "Ana",
+  telefono: "",
+  tipo: "salon",
+  direccion: "",
+};
+assert.equal((await route.POST(request(mostrador))).status, 403, "Sin sesión de caja no entra");
+staffSession = { rol: "cocina" };
+assert.equal((await route.POST(request(mostrador))).status, 403, "Cocina no carga pedidos");
+assert.equal(rows.length, filasConEnvio + 1);
+staffSession = { rol: "cajero" };
+const mostradorResponse = await route.POST(request(mostrador));
+assert.equal(mostradorResponse.status, 200, "La caja carga aunque la carta figure cerrada");
+const mostradorReceipt = await mostradorResponse.json();
+assert.equal(mostradorReceipt.whatsappUrl, null);
+assert.equal(mostradorReceipt.mostrador, true);
+const filaMostrador = rows.at(-1);
+assert.equal(filaMostrador.tipo, "salon");
+assert.equal(filaMostrador.estado, "nuevo");
+assert.equal(checkout.readCheckout(filaMostrador.items).origen, "mostrador");
+assert.equal(checkout.readCheckout(filaMostrador.items).telefono, "");
+// Reintento del mismo pedido de mostrador: no duplica y sigue sin WhatsApp.
+const mostradorRepetido = await (await route.POST(request(mostrador))).json();
+assert.equal(mostradorRepetido.whatsappUrl, null);
+assert.equal(mostradorRepetido.num, mostradorReceipt.num);
+staffSession = null;
+// Fuera del mostrador: teléfono obligatorio, sin "Salón".
+assert.equal(checkout.checkoutSchema.safeParse({ ...body, telefono: "" }).success, false);
+assert.equal(
+  checkout.checkoutSchema.safeParse({ ...body, tipo: "salon", direccion: "" }).success,
+  false,
+);
+assert.equal(
+  checkout.checkoutSchema.safeParse({ ...mostrador, telefono: "123" }).success,
+  false,
+  "En el mostrador el teléfono es opcional, pero si se carga tiene que ser válido",
+);
+assert.equal(
+  checkout.checkoutSchema.safeParse({ ...mostrador, telefono: "351 555 0100" }).success,
+  true,
+);
 const nights = Array.from({ length: 7 }, (_, dia) => ({
   dia,
   abierto: true,
